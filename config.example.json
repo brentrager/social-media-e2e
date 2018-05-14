@@ -1,0 +1,20 @@
+{
+    "ic": {
+        "server": "ICSERVERNAME",
+        "user": "ICUSER",
+        "password": "1234"
+    },
+    "interactionConnect": {
+        "url": "http://webbuild.ininlab.com/webapps/webic/client_systest/latest/client/"
+    },
+    "facebook": {
+        "user": "FACEBOOK ACCOUNT EMAIL WITH BUSINESS PAGE",
+        "password": "FACEBOOKPASSWORD",
+        "pageUrl": "URLTOFACEBOOKBUSINESSPAGE"
+    },
+    "tcdb": {
+        "baseUrl": "http://tcdb.genesys.com/tcdbv2",
+        "build": "ICSERVERBUILD (e.g. 2018-04-18-CL1953827-84)",
+        "email": "your.email@genesys.com"
+    }
+}
