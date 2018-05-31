@@ -33,7 +33,15 @@ interface TcdbExecution {
     Attributes?: Array<TcdbAttributes>;
 }
 
-export default class TCDB extends Base {
+interface TcdbTest {
+    number: string;
+    version: string;
+    stepCount: number;
+    description: string;
+    options: any;
+}
+
+export class TCDB extends Base {
     private builds: Array<any>;
     private build: any;
     private token: string;
@@ -190,4 +198,59 @@ export default class TCDB extends Base {
             throw error;
         }
     }
+
+    testMap: Map<string, TcdbTest> = new Map();
+
+    public addTest(jestDescription: string, tcdbTest: TcdbTest) {
+        this.testMap.set(jestDescription, tcdbTest);
+    }
+
+    public addStep(jestDescription: string) {
+        const tcdbTest = this.testMap.get(jestDescription);
+        if (tcdbTest) {
+            tcdbTest.stepCount++;
+        }
+    }
+
+    public async submitTest(jestDescription: string) {
+        const tcdbTest = this.testMap.get(jestDescription);
+        if (tcdbTest) {
+            await this.submitSuccess(tcdbTest.number, tcdbTest.version, tcdbTest.stepCount, tcdbTest.options);
+        }
+    }
+}
+
+export function setupTCDBJasmineReporter() {
+    const tcdbJasmineReporter = {
+        specDone: async (result) => {
+            if (global.tcdb && result.status && result.status === 'passed') {
+                global.tcdb.submitTest(result.description);
+            }
+        }
+    } as jasmine.CustomReporter;
+
+    global.jasmine.getEnv().addReporter(tcdbJasmineReporter);
+}
+
+function addStep(jestDescription: string) {
+    return (stepDescription?: string) => {
+        if (global.tcdb) {
+            global.tcdb.addStep(jestDescription);
+        }
+    }
+};
+
+export function tcdbTest(tcNumber: string, tcVersion: string, tcDescription: string, tcOptions: any, testFunction: jest.ProvidesCallback) {
+    const jestDescription = `${tcNumber}.${tcVersion}: ${tcDescription}`;
+    const tcdbTest = {} as TcdbTest;
+    tcdbTest.number = tcNumber;
+    tcdbTest.version = tcVersion;
+    tcdbTest.stepCount = 0;
+    tcdbTest.description = tcDescription;
+    tcdbTest.options = tcOptions;
+    if (global.tcdb) {
+        global.tcdb.addTest(jestDescription, tcdbTest);
+    }
+    // @ts-ignore: test.each really does exist.
+    return test.each([addStep(jestDescription)])(jestDescription, testFunction);
 }

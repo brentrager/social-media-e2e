@@ -1,4 +1,3 @@
-import * as puppeteer from 'puppeteer';
 import * as randomWords from 'random-words';
 import InteractionConnect from './InteractionConnect';
 import Facebook from './Facebook';
