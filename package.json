@@ -4,8 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "node ./node_modules/jest/bin/jest.js",
-    "precommit": "lint-staged"
+    "start": "node ./node_modules/jest/bin/jest.js"
   },
   "author": "",
   "license": "ISC",
@@ -33,16 +32,8 @@
   "devDependencies": {
     "eslint": "^4.19.1",
     "eslint-plugin-react": "^7.7.0",
-    "husky": "^0.14.3",
-    "lint-staged": "^7.1.3",
     "typescript-eslint-parser": "^14.0.0",
     "typings": "^2.1.1"
-  },
-  "lint-staged": {
-    "*.{ts,ts}": [
-      "prettier --parser typescript --write",
-      "git add"
-    ]
   },
   "jest": {
     "preset": "jest-puppeteer",
