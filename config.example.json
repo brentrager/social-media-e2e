@@ -2,7 +2,8 @@
     "ic": {
         "server": "ICSERVERNAME",
         "user": "ICUSER",
-        "password": "1234"
+        "password": "1234",
+        "workgroup": "ICWORKGROUP"
     },
     "interactionConnect": {
         "url": "http://webbuild.ininlab.com/webapps/webic/client_systest/latest/client/"

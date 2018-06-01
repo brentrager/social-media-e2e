@@ -1,13 +1,13 @@
-import * as moment from 'moment';
+import { trace, traceError } from "./trace";
 
 export default class Base {
-    logTopic: string = 'Base';
+  logTopic: string = "Base";
 
-    log(logString: any) {
-        console.log(`${moment().toISOString()}: ${this.logTopic}: ${logString}`);
-    }
+  log(logString: any) {
+    trace(this.logTopic, logString);
+  }
 
-    logError(logString: any) {
-        console.error(`${moment().toISOString()}: ${this.logTopic}: ${logString}`);
-    }
+  logError(logString: any) {
+    traceError(this.logTopic, logString);
+  }
 }

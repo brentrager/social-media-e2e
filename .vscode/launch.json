@@ -7,19 +7,6 @@
         {
             "type": "node",
             "request": "launch",
-            "name": "Debug via NPM",
-            "runtimeExecutable": "npm",
-            "runtimeArgs": [
-                "run",
-                "debug",
-                "--",
-                "--showBrowser"
-            ],
-            "port": 9229
-        },
-        {
-            "type": "node",
-            "request": "launch",
             "name": "Jest All",
             "program": "${workspaceFolder}/node_modules/jest/bin/jest",
             "args": [
