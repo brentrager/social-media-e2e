@@ -3,7 +3,6 @@ import * as request from 'request-promise-native';
 import Base from './Base';
 import * as moment from 'moment';
 import { trace } from './trace';
-import * as failFast from 'jasmine-fail-fast';
 
 interface TcdbUser {
     Email: string
@@ -244,7 +243,6 @@ export function setupTCDBJasmineReporter() {
 
     global.jasmine.getEnv().addReporter(tcdbJasmineReporter);
     // This makes tests stop executing after the first failure.
-    global.jasmine.getEnv().addReporter(failFast.init());
 }
 
 function addStep(testName: string, jestDescription: string) {
@@ -262,17 +260,32 @@ function testTrace(testName: string) {
     }
 }
 
-export function tcdbTest(tcNumber: string, tcVersion: string, tcDescription: string, tcOptions: any, testFunction: any, timeoutMs?: number) {
-    const testName = `${tcNumber}.${tcVersion}`;
-    const jestDescription = `${testName}: ${tcDescription}`;
-    const tcdbTest = {} as TcdbTest;
-    tcdbTest.number = tcNumber;
-    tcdbTest.version = tcVersion;
-    tcdbTest.stepCount = 0;
-    tcdbTest.description = tcDescription;
-    tcdbTest.options = tcOptions;
-    if (global.tcdb) {
-        global.tcdb.addTest(jestDescription, tcdbTest);
-    }
-    return test.each([[addStep(testName, jestDescription), testTrace(testName)]])(jestDescription, testFunction, timeoutMs);
+interface TcdbTestFunction {
+    (tcNumber: string, tcVersion: string, tcDescription: string, tcOptions: any, testFunction: any, timeoutMs?: number, jestFunction?: any): any;
+    skip: Function;
+    only: Function;
 }
+
+export const tcdbTest: TcdbTestFunction = (() => {
+    let _tcdbTest: any = function (tcNumber: string, tcVersion: string, tcDescription: string, tcOptions: any, testFunction: any, timeoutMs = 1 * 60 * 1000, jestFunction = test) {
+        const testName = `${tcNumber}.${tcVersion}`;
+        const jestDescription = `${testName}: ${tcDescription}`;
+        const tcdbTest = {} as TcdbTest;
+        tcdbTest.number = tcNumber;
+        tcdbTest.version = tcVersion;
+        tcdbTest.stepCount = 0;
+        tcdbTest.description = tcDescription;
+        tcdbTest.options = tcOptions;
+        if (global.tcdb) {
+            global.tcdb.addTest(jestDescription, tcdbTest);
+        }
+        return jestFunction.each([[addStep(testName, jestDescription), testTrace(testName)]])(jestDescription, testFunction, timeoutMs);
+    }
+    _tcdbTest.skip = function tcdbTestSkip(tcNumber: string, tcVersion: string, tcDescription: string, tcOptions: any, testFunction: any, timeoutMs?: number) {
+        return _tcdbTest(tcNumber, tcVersion, tcDescription, tcOptions, testFunction, timeoutMs, test.only);
+    }
+    _tcdbTest.only = function tcdbTestSkip(tcNumber: string, tcVersion: string, tcDescription: string, tcOptions: any, testFunction: any, timeoutMs?: number) {
+        return _tcdbTest(tcNumber, tcVersion, tcDescription, tcOptions, testFunction, timeoutMs, test.only);
+    }
+    return _tcdbTest;
+})();

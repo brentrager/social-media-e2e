@@ -149,7 +149,7 @@ export default class InteractionConnect extends Base {
         await this.page.bringToFront();
         await this.performActionOnInteraction(interaction, 'pickup');
 
-        const pickedupInteraction = await this.waitForStateAndGetInteractionInState('Connected', interaction, timeout);
+        const pickedupInteraction = await this.waitForStateAndGetInteractionInState('ACD - Assigned', interaction, timeout);
 
         return (pickedupInteraction === interaction) ? pickedupInteraction : undefined;
     }
