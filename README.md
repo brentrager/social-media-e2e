@@ -1,7 +1,5 @@
 # Social Media e2e Tests
 
-**IMPORTANT**: These tests are currently written to run with Node v8+, and not as part of ininbuild.  That is to come later.
-
 ## Install
 ```
 npm install
@@ -16,6 +14,7 @@ The parts of the config file are explained below.
 * **server**: IC server to test against
 * **user**: IC user to test as
 * **password**: IC user password
+* **workgroup**: IC workgroup name used in this test.
 
 ### Interaction Connect
 * **url**: URL to Interaction Connect build to use
@@ -38,40 +37,35 @@ The TCDB config is only needed if it's desirable to submit TCDB successful resul
 npm start
 ```
 
-## Running with Browser Shown
+## Running with Browser Hidden
+Set environmental variable HEADLESS to "true".
+
 ```
-npm start -- --showBrowser
+npm start
 ```
 
 ## Debugging
-```
-npm run debug -- --showBrowser
-```
-
-## Building
-```
-npm build
-```
-
-By default, this test app is written in TypeScript and runs without being transpiled. You can, however, transpile to javascript with ```npm build``` and the transpiled javascript would end up in dist/.
+Use VSCode and use one of the available launch configurations.
 
 ## Files
 
 
-### src/Test.ts
+### src/tests/*.test.ts
 
-This is where the tests are written. Specifically under the execute method in calls to executeTest.
+These are where the tests are written.
 
 For example:
 
 ```
-await this.executeTest('57558', '2', 1, 'Disconnect Social Conversation', async (assertOrThrow: Function) => {
-    // Disconnect interaction
-    assertOrThrow(await this.interactionConnect.disconnectInteraction(pickedUpInteraction), 'interaction disconnected');
-});
+tcdbTest('57558', '2', `Disconnect a Social - Conversation Interaction`, { attributes: [{ attribute: global.tcdb.ATTRIBUTE_SOCIAL_CONVERSATION_INTERACTION_TYPE, value: 'Facebook' }] },
+    async (addStep: Function, trace: Function) => {
+        addStep(`Using TestAgent's web client, select the Social - Conversation interaction and click the disconnect button.`);
+        expect(await interactionConnect.disconnectInteraction(pickedUpInteraction)).toBeTruthy();
+    }
+);
 ```
 
-In the above the arguments to ```executeTest``` are TC Number, TC Version, and the number of steps in the TC (this is required for the TCDB submission).  The fourth argument is a description of the test for tracing. The 5th agument is a function that will be called that does the actual testing.
+In the above the arguments to ```tcdbTest``` are TC Number, TC Version, TC Title. The 4th agument is a function that will be called that does the actual testing. The 5th (optional) argument is the timeout for the test.
 
 ### src/InteractionConnect.ts
 
@@ -83,10 +77,4 @@ This is where Facebook is automated.
 
 ### src/TCDB.ts
 
-This is where TCDB submissions are made. Probably no need to make changes here.
-
-## Typical Problems
-
-You can't currently run the project while CBed into corewebic. You also cannot debug using VS Code if you open VS Code from a CBed powershell or CMD prompt (since the paths will be different).
-
-The default node for ininbuild which is on the path while CBed is too old. Node V8+ and corresponding NPM must be installed separately at this point. Eventually we will make Rake pick the right node (since it is available in corewebic through systemweb tier).
+This is where TCDB submissions are made. Changed need made here when attributes associated with the various tests change.

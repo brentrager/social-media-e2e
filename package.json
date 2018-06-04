@@ -4,45 +4,49 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build": "tsc",
-    "start": "ts-node src/index.ts",
-    "debug": "node --inspect -r ts-node/register src/index.ts",
-    "dev": "node ./node_modules/nodemon/bin/nodemon.js"
+    "start": "node ./node_modules/jest/bin/jest.js --runInBand"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@types/jasmine": "^2.8.7",
+    "@types/jest": "^22.2.3",
     "@types/minimist": "^1.2.0",
     "@types/moment": "^2.13.0",
     "@types/node": "^9.4.6",
     "@types/puppeteer": "^1.2.1",
     "@types/request-promise-native": "^1.0.14",
+    "jasmine-fail-fast": "^2.0.0",
+    "jest": "^23.1.0",
+    "jest-puppeteer": "^3.0.1",
     "minimist": "^1.2.0",
     "moment": "^2.22.1",
-    "nodemon": "^1.17.1",
     "puppeteer": "^1.3.0",
     "random-words": "^1.1.0",
     "request": "^2.85.0",
     "request-promise-native": "^1.0.5",
+    "ts-jest-babel-7": "^22.0.7",
     "ts-node": "^5.0.1",
     "typescript": "2.7.1"
   },
   "devDependencies": {
-    "@types/chai": "^4.1.2",
-    "@types/mocha": "^5.0.0",
-    "chai": "^4.1.2",
     "eslint": "^4.19.1",
     "eslint-plugin-react": "^7.7.0",
-    "husky": "^0.15.0-rc.13",
-    "lint-staged": "^7.0.3",
-    "mocha": "^5.0.5",
     "typescript-eslint-parser": "^14.0.0",
     "typings": "^2.1.1"
   },
-  "lint-staged": {
-    "*.{ts,tsx}": [
-      "prettier --parser typescript --write",
-      "git add"
+  "jest": {
+    "preset": "jest-puppeteer",
+    "testEnvironment": "<rootDir>/src/util/TestEnvironment.js",
+    "transform": {
+      "^.+\\.ts$": "ts-jest-babel-7"
+    },
+    "testRegex": "src/tests/.*\\.test\\.ts$",
+    "moduleFileExtensions": [
+      "ts",
+      "js",
+      "json",
+      "node"
     ]
   }
 }

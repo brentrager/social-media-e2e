@@ -2,6 +2,7 @@ import { Config } from './Config';
 import * as request from 'request-promise-native';
 import Base from './Base';
 import * as moment from 'moment';
+import { trace } from './trace';
 
 interface TcdbUser {
     Email: string
@@ -33,7 +34,15 @@ interface TcdbExecution {
     Attributes?: Array<TcdbAttributes>;
 }
 
-export default class TCDB extends Base {
+interface TcdbTest {
+    number: string;
+    version: string;
+    stepCount: number;
+    description: string;
+    options: any;
+}
+
+export class TCDB extends Base {
     private builds: Array<any>;
     private build: any;
     private token: string;
@@ -43,6 +52,7 @@ export default class TCDB extends Base {
 
     public ATTRIBUTE_BROWSER_LIST = 61;
     public ATTRIBUTE_BROWSER_FREE_ENTRY = 161;
+    public ATTRIBUTE_SOCIAL_CONVERSATION_INTERACTION_TYPE = 162;
 
     private buildUrl(endpoint: string) {
         return `${this.config.tcdb.baseUrl}/${endpoint}`;
@@ -74,7 +84,7 @@ export default class TCDB extends Base {
     private async initializeAttributes(browserVersion: string) {
         this.getBrowserVersion(browserVersion);
 
-        for (let attribute of [this.ATTRIBUTE_BROWSER_FREE_ENTRY, this.ATTRIBUTE_BROWSER_LIST]) {
+        for (let attribute of [this.ATTRIBUTE_BROWSER_FREE_ENTRY, this.ATTRIBUTE_BROWSER_LIST, this.ATTRIBUTE_SOCIAL_CONVERSATION_INTERACTION_TYPE]) {
             let options = {
                 method: 'GET',
                 uri: this.buildUrl(`api/attributes/${attribute}`),
@@ -82,10 +92,10 @@ export default class TCDB extends Base {
                 json: true
             };
 
-            // Get browser version attribute
             let attributeData = await request(options);
             this.attributes.set(attribute, attributeData);
 
+            // Get browser version attribute
             if (attribute === this.ATTRIBUTE_BROWSER_FREE_ENTRY || attribute === this.ATTRIBUTE_BROWSER_LIST) {
                 let chromeBrowserVersionsSet = new Set<string>();
 
@@ -162,13 +172,20 @@ export default class TCDB extends Base {
             if (options && options.attributes && options.attributes.length) {
                 for (let attribute of options.attributes)
                 {
-                    if (attribute === this.ATTRIBUTE_BROWSER_FREE_ENTRY || attribute === this.ATTRIBUTE_BROWSER_LIST) {
+                    if (attribute.attribute && attribute.attribute === this.ATTRIBUTE_BROWSER_FREE_ENTRY || attribute.attribute === this.ATTRIBUTE_BROWSER_LIST) {
                         let browserVersionAttribute: TcdbAttributes = {
-                            AttributeType: this.attributes.get(attribute),
-                            Value: this.attributeBrowserVersion.get(attribute)
+                            AttributeType: this.attributes.get(attribute.attribute),
+                            Value: this.attributeBrowserVersion.get(attribute.attribute)
                         };
 
                         execution.Attributes.push(browserVersionAttribute);
+                    } else if (attribute.attribute && attribute.attribute === this.ATTRIBUTE_SOCIAL_CONVERSATION_INTERACTION_TYPE && attribute.value) {
+                        let socialConversationInteractionTypeAttribute: TcdbAttributes = {
+                            AttributeType: this.attributes.get(attribute.attribute),
+                            Value: attribute.value
+                        }
+
+                        execution.Attributes.push(socialConversationInteractionTypeAttribute);
                     }
                 }
             }
@@ -190,4 +207,85 @@ export default class TCDB extends Base {
             throw error;
         }
     }
+
+    testMap: Map<string, TcdbTest> = new Map();
+
+    public addTest(jestDescription: string, tcdbTest: TcdbTest) {
+        this.testMap.set(jestDescription, tcdbTest);
+    }
+
+    public addStep(jestDescription: string) {
+        const tcdbTest = this.testMap.get(jestDescription);
+        if (tcdbTest) {
+            return ++tcdbTest.stepCount;
+        }
+        return -1;
+    }
+
+    public async submitTest(jestDescription: string) {
+        const tcdbTest = this.testMap.get(jestDescription);
+        if (tcdbTest) {
+            await this.submitSuccess(tcdbTest.number, tcdbTest.version, tcdbTest.stepCount, tcdbTest.options);
+            const testName = `${tcdbTest.number}.${tcdbTest.version}`;
+            trace(testName, `Submitted PASS for '${tcdbTest.description}'.`);
+        }
+    }
 }
+
+export function setupTCDBJasmineReporter() {
+    const tcdbJasmineReporter = {
+        specDone: async (result) => {
+            if (global.tcdb && result.status && result.status === 'passed') {
+                global.tcdb.submitTest(result.description);
+            }
+        }
+    } as jasmine.CustomReporter;
+
+    global.jasmine.getEnv().addReporter(tcdbJasmineReporter);
+    // This makes tests stop executing after the first failure.
+}
+
+function addStep(testName: string, jestDescription: string) {
+    return (stepDescription?: string) => {
+        if (global.tcdb) {
+            const step = global.tcdb.addStep(jestDescription);
+            trace(testName, `Step ${step} - ${stepDescription}`);
+        }
+    }
+};
+
+function testTrace(testName: string) {
+    return (logTrace: any) => {
+        trace(testName, logTrace);
+    }
+}
+
+interface TcdbTestFunction {
+    (tcNumber: string, tcVersion: string, tcDescription: string, tcOptions: any, testFunction: any, timeoutMs?: number, jestFunction?: any): any;
+    skip: Function;
+    only: Function;
+}
+
+export const tcdbTest: TcdbTestFunction = (() => {
+    let _tcdbTest: any = function (tcNumber: string, tcVersion: string, tcDescription: string, tcOptions: any, testFunction: any, timeoutMs = 5 * 60 * 1000, jestFunction = test) {
+        const testName = `${tcNumber}.${tcVersion}`;
+        const jestDescription = `${testName}: ${tcDescription}`;
+        const tcdbTest = {} as TcdbTest;
+        tcdbTest.number = tcNumber;
+        tcdbTest.version = tcVersion;
+        tcdbTest.stepCount = 0;
+        tcdbTest.description = tcDescription;
+        tcdbTest.options = tcOptions;
+        if (global.tcdb) {
+            global.tcdb.addTest(jestDescription, tcdbTest);
+        }
+        return jestFunction.each([[addStep(testName, jestDescription), testTrace(testName)]])(jestDescription, testFunction, timeoutMs);
+    }
+    _tcdbTest.skip = function tcdbTestSkip(tcNumber: string, tcVersion: string, tcDescription: string, tcOptions: any, testFunction: any, timeoutMs?: number) {
+        return _tcdbTest(tcNumber, tcVersion, tcDescription, tcOptions, testFunction, timeoutMs, test.only);
+    }
+    _tcdbTest.only = function tcdbTestSkip(tcNumber: string, tcVersion: string, tcDescription: string, tcOptions: any, testFunction: any, timeoutMs?: number) {
+        return _tcdbTest(tcNumber, tcVersion, tcDescription, tcOptions, testFunction, timeoutMs, test.only);
+    }
+    return _tcdbTest;
+})();

@@ -1,6 +1,6 @@
 import * as puppeteer from 'puppeteer';
 import * as moment from 'moment';
-import {Config} from './Config';
+import { Config } from './Config';
 import Base from './Base';
 
 export default class InteractionConnect extends Base {
@@ -66,7 +66,7 @@ export default class InteractionConnect extends Base {
 
     private async checkOrWaitFor(selector: string, timeout: number = this.DEFAULT_TIMEOUT, visible: boolean = false) {
         if (!this.page) { throw new Error('Page is not yet loaded.'); }
-        let options: any = {timeout: timeout};
+        let options: any = { timeout: timeout };
         if (visible) {
             options.visible = true;
         }
@@ -82,7 +82,7 @@ export default class InteractionConnect extends Base {
                 // data-inintest for interaction is like something-something-#### where #### is interactionId
                 const interaction = row.getAttribute('data-inintest').split('-').slice(-1)[0];
                 const state = row.querySelector('div[data-inintest="qcol-State"] span').getAttribute('uib-tooltip');
-                return Promise.resolve({interaction, state});
+                return Promise.resolve({ interaction, state });
             }, element);
             map.set(result.interaction, result.state);
         }
@@ -103,7 +103,7 @@ export default class InteractionConnect extends Base {
     private async waitForStateAndGetInteractionInState(state: string, interactionToFind?: string, timeout: number = this.DEFAULT_TIMEOUT) {
         if (!this.page) { throw new Error('Page is not yet loaded.'); }
         await this.checkOrWaitFor(`div.queue-content div[data-inintest="qcol-State"] span[uib-tooltip*="${state}"]`, timeout);
-        
+
         let interactionMap = <Map<string, string>>await this.getInteractionStates();
 
         let interactionToGet;
@@ -149,7 +149,7 @@ export default class InteractionConnect extends Base {
         await this.page.bringToFront();
         await this.performActionOnInteraction(interaction, 'pickup');
 
-        const pickedupInteraction = await this.waitForStateAndGetInteractionInState('Connected', interaction, timeout);
+        const pickedupInteraction = await this.waitForStateAndGetInteractionInState('ACD - Assigned', interaction, timeout);
 
         return (pickedupInteraction === interaction) ? pickedupInteraction : undefined;
     }
@@ -185,7 +185,6 @@ export default class InteractionConnect extends Base {
 
     private async waitForNewReply(reply: string, timeout: number = 5 * 60 * 1000): Promise<puppeteer.JSHandle> {
         const timeoutTime = moment().add(moment.duration(timeout));
-        let post = undefined;
         while (moment() < timeoutTime) {
             await this.page.waitFor(500);
             let post = await this.page.evaluateHandle(reply => {
@@ -211,7 +210,7 @@ export default class InteractionConnect extends Base {
 
     public async replyToFacebookRootPostAndVerifyReply(reply: string) {
         await this.page.bringToFront();
-        const replyTextArea = <puppeteer.ElementHandle> await this.checkOrWaitFor(`textarea[data-inintest="social-conversation-composition-text-input"]`);
+        const replyTextArea = <puppeteer.ElementHandle>await this.checkOrWaitFor(`textarea[data-inintest="social-conversation-composition-text-input"]`);
 
         await replyTextArea.type(reply);
 
@@ -226,10 +225,10 @@ export default class InteractionConnect extends Base {
 
     public async replyToFacebookCommentAndVerifyReply(comment: puppeteer.ElementHandle, reply: string) {
         await this.page.bringToFront();
-        let replyButton = <puppeteer.ElementHandle> await comment.$('span.toolbar-image');
+        let replyButton = <puppeteer.ElementHandle>await comment.$('span.toolbar-image');
         await replyButton.click();
 
-        const replyTextArea = <puppeteer.ElementHandle> await this.checkOrWaitFor(`div.comment-window textarea[data-inintest="social-conversation-composition-text-input"]`);
+        const replyTextArea = <puppeteer.ElementHandle>await this.checkOrWaitFor(`div.comment-window textarea[data-inintest="social-conversation-composition-text-input"]`);
         await replyTextArea.type(reply);
 
         this.log(`Replying to comment: ${reply}`);
@@ -277,7 +276,7 @@ export default class InteractionConnect extends Base {
         await this.page.bringToFront();
         const iconFilter = <puppeteer.ElementHandle>await this.checkOrWaitFor(`i.icon-filter`, this.DEFAULT_TIMEOUT, true);
         await iconFilter.click();
-        const interactionTypeSelect = <puppeteer.ElementHandle>await this.checkOrWaitFor(`div.popover-content div[inin-checkbox-multiselect-options="interactionTypes"] button`);
+        const interactionTypeSelect = <puppeteer.ElementHandle>await this.checkOrWaitFor(`div[data-inintest="filter-interaction-types-multiselect inin-checkbox-multiselect-All`, this.DEFAULT_TIMEOUT, true);
         await interactionTypeSelect.click();
         const socialConversationCheckbox = <puppeteer.ElementHandle>await this.checkOrWaitFor(`div.popover-content input[data-inintest="inin-checkbox-multiselect-item-checkbox-Social Conversation"]`);
         await socialConversationCheckbox.click();
@@ -303,15 +302,15 @@ export default class InteractionConnect extends Base {
 
     public async getCurrentSocialConversationRingSound() {
         await this.page.bringToFront();
-        await this.checkOrWaitFor(`ic-ring-sound-select#ring-sounds-form-social-conversation`);      
-        return (await (await (await this.page.$('select#ic-ring-sound-select-ring-sounds-form-social-conversation')).getProperty('value')).jsonValue());        
+        await this.checkOrWaitFor(`ic-ring-sound-select#ring-sounds-form-social-conversation`);
+        return (await (await (await this.page.$('select#ic-ring-sound-select-ring-sounds-form-social-conversation')).getProperty('value')).jsonValue());
     }
 
     private originalRingSound: string;
 
     public async toggleSocialConversationRingSound() {
         // Changes between the original setting and another setting
-        await this.page.bringToFront();      
+        await this.page.bringToFront();
         if (!this.originalRingSound) {
             this.originalRingSound = await this.getCurrentSocialConversationRingSound();
             this.log(`Original ring sound set to "${this.originalRingSound}"`);
