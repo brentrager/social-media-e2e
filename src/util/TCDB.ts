@@ -267,7 +267,7 @@ interface TcdbTestFunction {
 }
 
 export const tcdbTest: TcdbTestFunction = (() => {
-    let _tcdbTest: any = function (tcNumber: string, tcVersion: string, tcDescription: string, tcOptions: any, testFunction: any, timeoutMs = 1 * 60 * 1000, jestFunction = test) {
+    let _tcdbTest: any = function (tcNumber: string, tcVersion: string, tcDescription: string, tcOptions: any, testFunction: any, timeoutMs = 5 * 60 * 1000, jestFunction = test) {
         const testName = `${tcNumber}.${tcVersion}`;
         const jestDescription = `${testName}: ${tcDescription}`;
         const tcdbTest = {} as TcdbTest;

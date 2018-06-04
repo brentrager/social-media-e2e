@@ -10,7 +10,7 @@ global.jasmine.getEnv().addReporter(failFast.init()); // Stop test after first f
 let interactionConnect: InteractionConnect;
 let facebook: Facebook;
 
-jest.setTimeout(1 * 100 * 1000); // Big timeout for long running Puppeteer Actions
+jest.setTimeout(5 * 60 * 1000); // Big timeout for long running Puppeteer Actions
 
 beforeAll(async () => {
     setupTCDBJasmineReporter();
@@ -23,6 +23,7 @@ describe('Social Media - Facebook', () => {
             interactionConnect = new InteractionConnect(config, global.browser);
             await interactionConnect.launch();
             await interactionConnect.openTab('My Interactions');
+            await interactionConnect.disconnectInteractions();
 
             // Launch Facebook
             facebook = new Facebook(config, global.browser);

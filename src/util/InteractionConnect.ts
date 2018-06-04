@@ -276,7 +276,7 @@ export default class InteractionConnect extends Base {
         await this.page.bringToFront();
         const iconFilter = <puppeteer.ElementHandle>await this.checkOrWaitFor(`i.icon-filter`, this.DEFAULT_TIMEOUT, true);
         await iconFilter.click();
-        const interactionTypeSelect = <puppeteer.ElementHandle>await this.checkOrWaitFor(`div.popover-content div[inin-checkbox-multiselect-options="interactionTypes"] button`);
+        const interactionTypeSelect = <puppeteer.ElementHandle>await this.checkOrWaitFor(`div[data-inintest="filter-interaction-types-multiselect inin-checkbox-multiselect-All`, this.DEFAULT_TIMEOUT, true);
         await interactionTypeSelect.click();
         const socialConversationCheckbox = <puppeteer.ElementHandle>await this.checkOrWaitFor(`div.popover-content input[data-inintest="inin-checkbox-multiselect-item-checkbox-Social Conversation"]`);
         await socialConversationCheckbox.click();
