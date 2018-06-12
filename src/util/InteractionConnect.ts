@@ -70,7 +70,7 @@ export default class InteractionConnect extends Base {
         if (visible) {
             options.visible = true;
         }
-        return <puppeteer.ElementHandle>(await this.page.waitFor(selector, { timeout: timeout })).asElement();
+        return <puppeteer.ElementHandle>((await this.page.waitForSelector(selector, { timeout: timeout })).asElement());
     }
 
     private async getInteractionStates() {
@@ -208,7 +208,7 @@ export default class InteractionConnect extends Base {
         throw error;
     }
 
-    public async replyToFacebookRootPostAndVerifyReply(reply: string) {
+    public async replyToRootPostAndVerifyReply(reply: string) {
         await this.page.bringToFront();
         const replyTextArea = <puppeteer.ElementHandle>await this.checkOrWaitFor(`textarea[data-inintest="social-conversation-composition-text-input"]`);
 
@@ -223,7 +223,7 @@ export default class InteractionConnect extends Base {
         return post;
     }
 
-    public async replyToFacebookCommentAndVerifyReply(comment: puppeteer.ElementHandle, reply: string) {
+    public async replyToCommentAndVerifyReply(comment: puppeteer.ElementHandle, reply: string) {
         await this.page.bringToFront();
         let replyButton = <puppeteer.ElementHandle>await comment.$('span.toolbar-image');
         await replyButton.click();
@@ -240,7 +240,7 @@ export default class InteractionConnect extends Base {
         return post;
     }
 
-    public async verifyFacebookPostVisible(post: string) {
+    public async verifyPostVisible(post: string) {
         await this.page.bringToFront();
         const postDiv = <puppeteer.ElementHandle>await this.checkOrWaitFor(`div.company-post-text`);
         const postText = await (await postDiv.getProperty('innerHTML')).jsonValue();

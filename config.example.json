@@ -13,6 +13,11 @@
         "password": "FACEBOOKPASSWORD",
         "pageUrl": "URLTOFACEBOOKBUSINESSPAGE"
     },
+    "twitter": {
+        "user": "TWITTER ACCOUNT EMAIL WITH BUSINESS PAGE",
+        "password": "TWITTERPASSWORD",
+        "pageUrl": "URLTOTWITTERBUSINESSPAGE"
+    },
     "tcdb": {
         "baseUrl": "http://tcdb.genesys.com/tcdbv2",
         "build": "ICSERVERBUILD (e.g. 2018-04-18-CL1953827-84)",
