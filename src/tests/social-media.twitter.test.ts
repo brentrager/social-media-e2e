@@ -117,58 +117,6 @@ describe('Social Media - Twitter', () => {
                 pickedUpInteractions = { pickedUpInteraction1, pickedUpInteraction2 };
             }, 10 * 60 * 1000 // We give a long timeout here in case the interaction takes forever.
         );
-    
-        tcdbTest('57552', '1', `Filter a User Queue By Social - Conversation Interaction Type`, { attributes: [{ attribute: global.tcdb.ATTRIBUTE_BROWSER_LIST }] },
-            async (addStep: Function, trace: Function) => {
-                addStep(`Add TestUser's user queue view to TestUser's web client.`);
-                await interactionConnect.openTab(config.ic.user);
-    
-                addStep(`Click the filter queue button.`);
-                addStep(`Choose to filter the user queue by the Social - Conversation interaction type.`);
-                await interactionConnect.filterQueueOnSocialConversations();
-                expect(await interactionConnect.getInteractionRow(pickedUpInteractions.pickedUpInteraction1)).toBeTruthy();
-    
-                await interactionConnect.clearQueueFilter();            
-            }
-        );
-    
-        tcdbTest('57548', '3', `Filter a Workgroup Queue By Social - Conversation Interaction Type`, { attributes: [{ attribute: global.tcdb.ATTRIBUTE_BROWSER_LIST }] },
-            async (addStep: Function, trace: Function) => {
-                addStep(`Add TestWorkgroup's workgroup queue view to TestUser's web client.`);
-                await interactionConnect.openTab(config.ic.workgroup);
-    
-                addStep(`Click the filter queue button.`);
-                addStep(`Choose to filter the workgroup queue by the Social - Conversation interaction type.`);
-                await interactionConnect.filterQueueOnSocialConversations();
-                expect(await interactionConnect.getInteractionRow(pickedUpInteractions.pickedUpInteraction1)).toBeTruthy();
-    
-                await interactionConnect.clearQueueFilter();
-            }
-        );
-    });
-    
-    describe('Social Media Ring Sound', () => {
-        tcdbTest('57547', '0', `Configure Ring Sound for Social - Conversations`, { attributes: [{ attribute: global.tcdb.ATTRIBUTE_BROWSER_FREE_ENTRY }] },
-            async (addStep: Function, trace: Function) => {
-                addStep(`Open the application settings dialog and navigate to the ring sounds settings page.`);
-                await interactionConnect.openRingSoundsSettings();
-    
-                addStep(`Choose a ring sound from the menu (other than the currently selected option) for Social - Conversation interactions.`);
-                addStep(`Save the settings.`);
-                let originalRingSound = await interactionConnect.getCurrentSocialConversationRingSound();
-                let newRingSound = await interactionConnect.toggleSocialConversationRingSound();
-    
-                expect(originalRingSound).not.toEqual(newRingSound);
-    
-                addStep(`Re-open the application settings dialog, navigating to the Ring Sounds tab.`);
-                await interactionConnect.openRingSoundsSettings();
-                let reopenSettingsRingSound = await interactionConnect.getCurrentSocialConversationRingSound();         
-    
-                expect(reopenSettingsRingSound).toEqual(newRingSound);
-    
-                await interactionConnect.toggleSocialConversationRingSound();
-            }
-        );
     });
 
     afterAll(async () => {
