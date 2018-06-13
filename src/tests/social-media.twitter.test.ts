@@ -117,11 +117,31 @@ describe('Social Media - Twitter', () => {
                 pickedUpInteractions = { pickedUpInteraction1, pickedUpInteraction2 };
             }, 10 * 60 * 1000 // We give a long timeout here in case the interaction takes forever.
         );
+
+        tcdbTest('58306', '1', `Social - Conversation Interaction Twitter Handle Handling`, { attributes: [{ attribute: global.tcdb.ATTRIBUTE_SOCIAL_CONVERSATION_INTERACTION_TYPE, value: 'Twitter' }] },
+            async (addStep: Function, trace: Function) => {
+                addStep(`Place a Social - Conversation interaction into TestWorkgroup's queue via a Twitter handle '@' tag.`);
+                // Make a Twitter post on the alternate account with the main account handle
+                await twitter.postRandomOnAltAccountWithHandle();
+
+                addStep(`Pickup the alerting Social - Conversation interaction.`);
+                // Wait 5 minutes for an interaction to alert
+                trace('Waiting 5 minutes for Twitter to pass through interaction.');
+                // Pickup interaction
+                const pickedUpInteraction = await interactionConnect.pickupAlertingInteraction(60 * 1000 * 5);
+                expect(pickedUpInteraction).toBeTruthy();
+
+                addStep(`Reply to the Social - Conversation interaction.`);
+                const comment = (await interactionConnect.replyToRootPostAndVerifyReply(randomWords(10).join(' '))).asElement();
+                expect(comment).toBeTruthy();
+            }, 10 * 60 * 1000 // We give a long timeout here in case the interaction takes forever.
+        );
     });
 
     afterAll(async () => {
         await interactionConnect.openTab('My Interactions');
         await interactionConnect.disconnectInteractions();
         await interactionConnect.logout();
+        await twitter.logout();
     });
 })

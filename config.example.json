@@ -16,6 +16,9 @@
     "twitter": {
         "user": "TWITTER ACCOUNT EMAIL WITH BUSINESS PAGE",
         "password": "TWITTERPASSWORD",
+        "handle": "TWITTERHANDLE",
+        "user2": "ALTERNATE TWITTER ACCOUNT EMAIL",
+        "password2": "ALTERNATETWITTERPASSWORD",
         "pageUrl": "URLTOTWITTERBUSINESSPAGE"
     },
     "tcdb": {
