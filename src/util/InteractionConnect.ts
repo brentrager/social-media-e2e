@@ -248,6 +248,12 @@ export default class InteractionConnect extends Base {
         return postText === post;
     }
 
+    public async verifyImageVisible() {
+        await this.page.bringToFront();
+        const postDiv = <puppeteer.ElementHandle>await this.checkOrWaitFor(`div.company-post-container-open img.image`);
+        return postDiv;
+    }
+
     public async waitFor(timeout: number) {
         await this.page.bringToFront();
         await this.page.waitFor(timeout);

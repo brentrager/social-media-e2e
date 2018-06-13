@@ -1,3 +1,4 @@
+import * as path from "path";
 import * as puppeteer from "puppeteer";
 import * as randomWords from "random-words";
 import { Config } from "./Config";
@@ -71,7 +72,7 @@ export default class Twitter extends Base {
 
         try {
             randomPost = randomWords(10).join(" ");
-            await this.postText(randomPost);
+            await this.post(randomPost);
         } catch (error) {
             this.logError(`Error making random post: ${error}`);
             throw error;
@@ -80,7 +81,25 @@ export default class Twitter extends Base {
         return randomPost;
     }
 
-    public async postText(text: string) {
+    public async postRandomWithImage() {
+        if (!this.page) {
+            throw new Error("Page is not yet loaded.");
+        }
+        let randomPost;
+
+        try {
+            randomPost = randomWords(10).join(" ");
+            let testImageLocation = './src/resources/testImage.png';
+            await this.post(randomPost, testImageLocation);
+        } catch (error) {
+            this.logError(`Error making random post: ${error}`);
+            throw error;
+        }
+
+        return randomPost;
+    }
+
+    public async post(text: string, file?: string) {
         if (!this.page) {
             throw new Error("Page is not yet loaded.");
         }
@@ -95,6 +114,10 @@ export default class Twitter extends Base {
             let twitterTweetInput = <puppeteer.ElementHandle>((await this.page.waitForSelector("div#Tweetstorm-tweet-box-0", {visible: true})).asElement());
             await twitterTweetInput.click();
             await twitterTweetInput.type(text);
+            if  (file) {
+                let twitterFileInput = <puppeteer.ElementHandle>(await this.page.$('div#Tweetstorm-dialog-dialog input[type=file]'));
+                await twitterFileInput.uploadFile(file);
+            }
             await this.page.waitFor(1000);
             let twitterSubmitTweetButton = <puppeteer.ElementHandle>(await this.page.$('button.SendTweetsButton'));
             await twitterSubmitTweetButton.click();
@@ -119,7 +142,7 @@ export default class Twitter extends Base {
 
             await this.signIn(this.config.twitter.user2, this.config.twitter.password2);
             randomPost = this.config.twitter.handle + ' ' + randomWords(10).join(" ");
-            await this.postText(randomPost);
+            await this.post(randomPost);
             await this.logout();
 
             await this.signIn(this.config.twitter.user, this.config.twitter.password);
