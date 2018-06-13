@@ -118,7 +118,7 @@ describe('Social Media - Twitter', () => {
             }, 10 * 60 * 1000 // We give a long timeout here in case the interaction takes forever.
         );
 
-        tcdbTest('58306', '1', `Social - Conversation Interaction Twitter Handle Handling`, { attributes: [{ attribute: global.tcdb.ATTRIBUTE_SOCIAL_CONVERSATION_INTERACTION_TYPE, value: 'Twitter' }] },
+        tcdbTest('58307', '0', `Social - Conversation Interaction Twitter Handle Handling`, { attributes: [{ attribute: global.tcdb.ATTRIBUTE_SOCIAL_CONVERSATION_INTERACTION_TYPE, value: 'Twitter' }] },
             async (addStep: Function, trace: Function) => {
                 addStep(`Place a Social - Conversation interaction into TestWorkgroup's queue via a Twitter handle '@' tag.`);
                 // Make a Twitter post on the alternate account with the main account handle
