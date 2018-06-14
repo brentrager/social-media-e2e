@@ -78,7 +78,6 @@ describe('Social Media - Twitter', () => {
             }
         );
     
-        let pickedUpInteractions: any = {};
         tcdbTest('57560', '1', `Selecting a Social - Conversation interaction in the 'My Interactions'  view will display the contents of the interaction in the 'Current Interaction' view.`, { attributes: [{ attribute: global.tcdb.ATTRIBUTE_SOCIAL_CONVERSATION_INTERACTION_TYPE, value: 'Twitter' }] },
             async (addStep: Function, trace: Function) => {
                 // TODO: Once https://devjira.inin.com/browse/IC-149464 works, this should be changed to make two posts and let
@@ -114,7 +113,76 @@ describe('Social Media - Twitter', () => {
     
                 expect(await interactionConnect.verifyPostVisible(post1)).toBeTruthy();
     
-                pickedUpInteractions = { pickedUpInteraction1, pickedUpInteraction2 };
+                //TODO: should use disconnect interaction
+                await interactionConnect.disconnectInteractions();
+            }, 10 * 60 * 1000 // We give a long timeout here in case the interaction takes forever.
+        );
+
+        tcdbTest('58321', '0', `Social - Conversation Interaction Twitter Retweet With a Comment Handling`, { attributes: [{ attribute: global.tcdb.ATTRIBUTE_SOCIAL_CONVERSATION_INTERACTION_TYPE, value: 'Twitter' }] },
+            async (addStep: Function, trace: Function) => {
+                addStep(`Place a Social - Conversation interaction into TestWorkgroup's queue via a Twitter retweet with a comment.`);
+                // Make retweet with a random comment
+                let text = randomWords(10).join(' ');
+                let tweetURL = await twitter.retweetWithComment(text);
+
+                addStep(`Pickup the alerting Social - Conversation interaction.`);
+                // Wait 5 minutes for an interaction to alert
+                trace('Waiting 5 minutes for Twitter to pass through interaction.');
+                // Pickup interaction
+                const pickedUpInteraction = await interactionConnect.pickupAlertingInteraction(60 * 1000 * 5);
+                expect(pickedUpInteraction).toBeTruthy();
+                expect(await interactionConnect.verifyPostContainsText(text)).toBeTruthy();
+                expect(await interactionConnect.verifyPostContainsLink(tweetURL)).toBeTruthy();
+
+                addStep(`Reply to the Social - Conversation interaction.`);
+                const comment = (await interactionConnect.replyToRootPostAndVerifyReply(randomWords(10).join(' '))).asElement();
+                expect(comment).toBeTruthy();
+
+                //TODO: should use disconnect interaction
+                await interactionConnect.disconnectInteractions();
+            }, 10 * 60 * 1000 // We give a long timeout here in case the interaction takes forever.
+        );
+
+        tcdbTest('58306', '1', `Social - Conversation Interaction Inline Image Handling`, { attributes: [{ attribute: global.tcdb.ATTRIBUTE_SOCIAL_CONVERSATION_INTERACTION_TYPE, value: 'Twitter' }] },
+            async (addStep: Function, trace: Function) => {
+                addStep(`Place a Social - Conversation interaction containing an attached image into TestWorkgroup's queue.`);
+                // Make a Twitter post on the alternate account with the main account handle
+                await twitter.postRandomWithImage();
+
+                addStep(`Pickup the alerting Social - Conversation interaction.`);
+                // Wait 5 minutes for an interaction to alert
+                trace('Waiting 5 minutes for Twitter to pass through interaction.');
+                // Pickup interaction
+                const pickedUpInteraction = await interactionConnect.pickupAlertingInteraction(60 * 1000 * 5);
+                expect(pickedUpInteraction).toBeTruthy();
+
+                addStep(`Verify that the attached image is viewable in TestAgent's 'Current Interaction' tab.`);
+                expect(await interactionConnect.verifyImageVisible()).toBeTruthy();
+                
+                //TODO: should use disconnect interaction
+                await interactionConnect.disconnectInteractions();
+            }, 10 * 60 * 1000 // We give a long timeout here in case the interaction takes forever.
+        );
+
+        tcdbTest('58307', '0', `Social - Conversation Interaction Twitter Handle Handling`, { attributes: [{ attribute: global.tcdb.ATTRIBUTE_SOCIAL_CONVERSATION_INTERACTION_TYPE, value: 'Twitter' }] },
+            async (addStep: Function, trace: Function) => {
+                addStep(`Place a Social - Conversation interaction into TestWorkgroup's queue via a Twitter handle '@' tag.`);
+                // Make a Twitter post on the alternate account with the main account handle
+                await twitter.postRandomOnAltAccountWithHandle();
+
+                addStep(`Pickup the alerting Social - Conversation interaction.`);
+                // Wait 5 minutes for an interaction to alert
+                trace('Waiting 5 minutes for Twitter to pass through interaction.');
+                // Pickup interaction
+                const pickedUpInteraction = await interactionConnect.pickupAlertingInteraction(60 * 1000 * 5);
+                expect(pickedUpInteraction).toBeTruthy();
+
+                addStep(`Reply to the Social - Conversation interaction.`);
+                const comment = (await interactionConnect.replyToRootPostAndVerifyReply(randomWords(10).join(' '))).asElement();
+                expect(comment).toBeTruthy();
+
+                //TODO: should use disconnect interaction
+                await interactionConnect.disconnectInteractions();
             }, 10 * 60 * 1000 // We give a long timeout here in case the interaction takes forever.
         );
     });
@@ -123,5 +191,6 @@ describe('Social Media - Twitter', () => {
         await interactionConnect.openTab('My Interactions');
         await interactionConnect.disconnectInteractions();
         await interactionConnect.logout();
+        await twitter.logout();
     });
 })

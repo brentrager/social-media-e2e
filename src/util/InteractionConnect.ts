@@ -248,6 +248,33 @@ export default class InteractionConnect extends Base {
         return postText === post;
     }
 
+    public async verifyPostContainsText(post: string) {
+        await this.page.bringToFront();
+        const postDiv = <puppeteer.ElementHandle>await this.checkOrWaitFor(`div.company-post-text`);
+        const postText = await (await postDiv.getProperty('innerHTML')).jsonValue();
+        this.log(`Verifying post '${post}'. Found: '${postText}'`);
+        return postText.includes(post);
+    }
+
+    public async verifyPostContainsLink(link: string) {
+        await this.page.bringToFront();
+        const postDivLink = <puppeteer.ElementHandle>await this.checkOrWaitFor(`div.company-post-text a`);
+        const linkText = await (await postDivLink.getProperty('href')).jsonValue();
+        let testPage = await this.browser.newPage();
+        await testPage.setViewport({ width: 1000, height: 800 });
+        await testPage.goto(linkText);
+        await testPage.waitFor('div#permalink-overlay-dialog');
+        let testUrl = testPage.url();
+        this.log(`Verifying link '${link}'. Found: '${testUrl}'`);
+        return testUrl === link;
+    }
+
+    public async verifyImageVisible() {
+        await this.page.bringToFront();
+        const postDiv = <puppeteer.ElementHandle>await this.checkOrWaitFor(`div.company-post-container-open img.image`);
+        return postDiv;
+    }
+
     public async waitFor(timeout: number) {
         await this.page.bringToFront();
         await this.page.waitFor(timeout);
