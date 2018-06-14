@@ -99,6 +99,37 @@ export default class Twitter extends Base {
         return randomPost;
     }
 
+    public async retweetWithComment(text: string) {
+        if (!this.page) {
+            throw new Error("Page is not yet loaded.");
+        }
+
+        let tweetUrl;
+        try {
+            await this.bringToFront();
+            this.log(`Load page: ${this.config.twitter.pageUrl}`);
+            await this.page.goto(this.config.twitter.pageUrl);
+
+            let randomTweet = <puppeteer.ElementHandle>((await this.page.waitFor('li.js-stream-item')).asElement());
+            await randomTweet.click();
+            let twitterRetweetButton = <puppeteer.ElementHandle>((await this.page.waitFor('div#permalink-overlay-dialog span.Icon--retweet')).asElement());
+            tweetUrl = this.page.url();
+            await twitterRetweetButton.click();
+            let twitterRetweetComment = <puppeteer.ElementHandle>((await this.page.waitFor('div#retweet-with-comment')).asElement());
+            await twitterRetweetComment.type(text);
+            await this.page.waitFor(1000);
+            let twitterSubmitRetweetButton = <puppeteer.ElementHandle>(await this.page.$('div#retweet-tweet-dialog-dialog button.retweet-action'));
+            await twitterSubmitRetweetButton.click();
+            // TODO: find a better solution for this
+            await this.page.waitFor(1000);
+            this.log(`Posted random post: ${text}`);
+        } catch (error) {
+            this.logError(`Error making random post: ${error}`);
+            throw error;
+        }
+        return tweetUrl;
+    }
+
     public async post(text: string, file?: string) {
         if (!this.page) {
             throw new Error("Page is not yet loaded.");
