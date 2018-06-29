@@ -17,6 +17,12 @@ export interface ConfigFacebook {
     pageUrl: string;
 }
 
+export interface ConfigTwitter {
+    user: string;
+    password: string;
+    pageUrl: string;
+}
+
 export interface ConfigTcdb {
     baseUrl: string;
     build: string;
@@ -27,6 +33,7 @@ export interface Config {
     ic: ConfigIc;
     interactionConnect: ConfigInteractionConnect;
     facebook: ConfigFacebook;
+    twitter: ConfigTwitter;
     tcdb?: ConfigTcdb;
 }
 

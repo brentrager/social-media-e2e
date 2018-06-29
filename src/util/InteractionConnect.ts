@@ -253,6 +253,20 @@ export default class InteractionConnect extends Base {
         await this.page.waitFor(timeout);
     }
 
+    public async addNewView(viewId: string) {
+        await this.page.bringToFront();
+        await this.page.click('.inin-tabset-end-button[data-inintest="docking-add-view"]');
+        this.log("Opening add view dropdown");
+        await this.page.click('button[data-inintest="add-view-popover-center-show-all"]');
+        this.log("Opening add view popover");
+        await this.page.click(`label[data-inintest="add-view-dialog-item-${viewId}"]`);
+        this.log(`Checking add view for: ${viewId}`);
+        await this.page.waitFor(100);
+        await this.page.click(`.add-view-button[data-inintest="add-link"]`);
+        this.log(`Adding View`);
+        await this.page.waitFor(2500);
+    }
+
     public async openTab(tabName: string) {
         await this.page.bringToFront();
         await this.page.click(`span.inin-docking-region-display-name[uib-tooltip="${tabName}"]`);
@@ -343,4 +357,96 @@ export default class InteractionConnect extends Base {
 
         return currentRingSound;
     }
+
+    public async doesElementExist(selector: string) {
+        const element = await this.page.$(selector);
+        return element !== null;
+    }
+
+    public async getGridRow(index: number, gridSelector = "") : Promise<puppeteer.ElementHandle> {
+        if (gridSelector === "") {
+            gridSelector += `.ui-grid-viewport .ui-grid-row`;
+        }
+        const gridRows = <Array<puppeteer.ElementHandle>>await this.page.$$(gridSelector);
+        if (gridRows.length === 0) {
+            this.log("Grid was empty returning null");
+            return null;
+        }
+        if (gridRows.length > index) {
+            this.log(`Found requested index: ${index}`);
+            return gridRows[index];
+        } else {
+            this.log("Grid was smaller than requested returning null");
+            return gridRows[0];
+        }
+    }
+
+    public async runQualitySearch() {
+        const tabExists = await this.doesElementExist(`span.inin-docking-region-display-name[uib-tooltip="My Quality Results"]`);
+        if (!tabExists) {
+            await this.addNewView("qualityDashboard");
+        }
+        await this.openTab("My Quality Results")
+        await this.page.click('.find-scorecards-button[data-inintest="ic-quality-search-controls-find-scorecards-button"]');
+        this.log("Clicking search button");
+        await this.page.waitFor(5000);
+    }
+
+    public async selectQualityResult(index: number) {
+        const row = await this.getGridRow(index, '[data-inintest="ic-quality-scorecard-search-results-grid"]');
+        if (row === null) {
+            this.log("Was unable to click requested row");
+            return;
+        }
+        this.log(`Retrieved row: ${index}`);
+        const scorecardButton = <puppeteer.ElementHandle>await row.$('[data-inintest="scorecard-search-results-open-link-data.scorecard.scorecardId"]');
+        this.log("Found scorecard button for row");
+        await scorecardButton.click();
+        this.log("Clicked scorecard button");
+        await this.page.waitFor(5000);
+    }
+
+    public async closeScorecardDetails() {
+        this.page.click('[data-inintest="ic-quality-scorecard-focus-close-button"]')
+        this.log("Closing Scorecard");
+    }
+
+    public async canAdHocRecord() {
+        const disabledAdHoc = await this.doesElementExist('.disabled[data-inintest="inin-command-button-record"]');
+        return !disabledAdHoc;
+    }
+
+    public async adHocRecord(start: boolean) {
+        if (await this.canAdHocRecord()) {
+            this.page.click('[data-inintest="inin-command-button-record"]');
+            if (start) {
+                this.log("Started ad hoc recording");
+            } else {
+                this.log("Stopped ad hoc recording");
+            }
+        } else {
+            this.log("Cannot start an ad hoc recording");
+            throw new Error("Could not properly start an ad hoc recording");
+        }
+    }
+
+    public async canSnipRecord() {
+        const disabledSnip = await !this.doesElementExist('.disabled[data-inintest="inin-command-button-recordSnippet"]');
+        return !disabledSnip;
+    }
+
+    public async snipRecord(start: boolean) {
+        if (await this.canSnipRecord()) {
+            this.page.click('[data-inintest="inin-command-button-recordSnippet"]');
+            if (start) {
+                this.log("Started snippet recording");
+            } else {
+                this.log("Stopped snippet recording");
+            }
+        } else {
+            this.log("Cannot start a snippet recording");
+            throw new Error("Could not properly start a snippet recording");
+        }
+    }
+
 }
