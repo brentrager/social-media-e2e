@@ -3,15 +3,36 @@
         "server": "ICSERVERNAME",
         "user": "ICUSER",
         "password": "1234",
+        "station": "STATION",
         "workgroup": "ICWORKGROUP"
     },
     "interactionConnect": {
         "url": "http://webbuild.ininlab.com/webapps/webic/client_systest/latest/client/"
     },
+    "icws": {
+        "applicationName": "Test Social Media Configuration",
+        "hash": "hCj6Iaa2Wu71WqsQNTPLPxGdGd36hp1Fz/kobNHPrjI="
+    },
+    "socialMedia": {
+        "hub": "GENESYS HUB URL",
+        "socialMediaProcessor": "SOCIAL MEDIA PROCESSOR 1 URL",
+        "socialMediaProcessor2": "SOCIAL MEDIA PROCESSOR 2 URL",
+        "socialMediaProcessorSecret": "SOCIAL MEDIA PROCESSOR SECRET"
+    },
+    "genesysHub": {
+        "email": "GENESYS HUB ACCOUNT",
+        "password": "GENESYS HUB ACCOUNT PASSWORD"
+    },
     "facebook": {
         "user": "FACEBOOK ACCOUNT EMAIL WITH BUSINESS PAGE",
-        "password": "FACEBOOKPASSWORD",
-        "pageUrl": "URLTOFACEBOOKBUSINESSPAGE"
+        "password": "FACEBOOK PASSWORD",
+        "pageUrl": "URL TO FACEBOOK BUSINESS PAGE",
+        "socialConversationWorkgroup": "FACEBOOK SOCIAL CONVERSATION WORKGROUP"
+    },
+    "twitter": {
+        "user": "TWITTER ACCOUNT EMAIL WITH BUSINESS PAGE",
+        "password": "TWITTER PASSWORD",
+        "socialConversationWorkgroup": "TWITTER SOCIAL CONVERSATION WORKGROUP"
     },
     "twitter": {
         "user": "TWITTER ACCOUNT EMAIL WITH BUSINESS PAGE",
