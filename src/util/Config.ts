@@ -4,6 +4,7 @@ export interface ConfigIc {
     server: string;
     user: string;
     password: string;
+    station: string;
     workgroup: string;
 }
 
@@ -11,10 +12,34 @@ export interface ConfigInteractionConnect {
     url: string;
 }
 
+export interface ConfigICWS {
+    applicationName: string;
+    hash: string;
+}
+
+export interface ConfigSocialMedia {
+    hub: string;
+    socialMediaProcessor: string;
+    socialMediaProcessor2?: string;
+    socialMediaProcessorSecret: string;
+}
+
+export interface ConfigGenesysHub {
+    email: string;
+    password: string;
+}
+
 export interface ConfigFacebook {
     user: string;
     password: string;
     pageUrl: string;
+    socialConversationWorkgroup: string;
+}
+
+export interface ConfigTwitter {
+    user: string;
+    password: string;
+    socialConversationWorkgroup: string;
 }
 
 export interface ConfigTcdb {
@@ -26,7 +51,11 @@ export interface ConfigTcdb {
 export interface Config {
     ic: ConfigIc;
     interactionConnect: ConfigInteractionConnect;
+    icws: ConfigICWS;
+    socialMedia: ConfigSocialMedia;
+    genesysHub: ConfigGenesysHub;
     facebook: ConfigFacebook;
+    twitter: ConfigTwitter;
     tcdb?: ConfigTcdb;
 }
 

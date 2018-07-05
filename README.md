@@ -14,15 +14,36 @@ The parts of the config file are explained below.
 * **server**: IC server to test against
 * **user**: IC user to test as
 * **password**: IC user password
-* **workgroup**: IC workgroup name used in this test.
+* **station**: IC user station
+* **workgroup**: IC workgroup name used in this test
 
 ### Interaction Connect
 * **url**: URL to Interaction Connect build to use
+
+### ICWS
+* **applicationName**: The applicationName MUST always be hard coded to: "Test Social Media Configuration"
+* **hash**: The hash MUST always be hard coded to: "hCj6Iaa2Wu71WqsQNTPLPxGdGd36hp1Fz/kobNHPrjI="
+
+### Social Media
+* **hub**: Genesys Hub URL
+* **socialMediaProcessor**: Social Media Processor URL
+* **socialMediaProcessor2**: Social Media Processor 2 URL, if one exists
+* **socialMediaProcessorSecret**: Social Media Processor password
+
+### Genesys Hub
+* **email**: Genesys Hub account
+* **password**: Genesys Hub account password
 
 ### Facebook
 * **user**: Facebook account email
 * **password**: Facebook account password
 * **pageUrl**: URL to Facebook Page associated with Facebook account
+* **socialConversationWorkgroup**: Facebook social conversation workgroup
+
+### Twitter
+* **user**: Twitter account email
+* **password**: Twitter account password
+* **socialConversationWorkgroup**: Twitter social conversation workgroup
 
 ### TCDB (optional)
 * **baseUrl**: Base URL for TCDB API
@@ -67,13 +88,21 @@ tcdbTest('57558', '2', `Disconnect a Social - Conversation Interaction`, { attri
 
 In the above the arguments to ```tcdbTest``` are TC Number, TC Version, TC Title. The 4th agument is a function that will be called that does the actual testing. The 5th (optional) argument is the timeout for the test.
 
-### src/InteractionConnect.ts
+### src/util/InteractionConnect.ts
 
 This is where Interaction Connect is automated. This is the meat of the automation. Lots of clicking on DOM objects and waiting for others to load.  Also things like getting interactions in My Interaction.
 
-### src/Facebook.ts
+### src/util/ICWS.ts
+
+This is where the ICWS APIs are automated.
+
+### src/util/Facebook.ts
 
 This is where Facebook is automated.
+
+### src/util/Twitter.ts
+
+This is where Twitter is automated.
 
 ### src/TCDB.ts
 
