@@ -36,7 +36,7 @@ describe('Social Media - Facebook', () => {
                 addStep(`Place a Social - Conversation interaction into TestWorkgroup's queue.`);
                 // Make a Facebook post
                 await facebook.postRandom();
-                
+
                 addStep(`Pickup the alerting Social - Conversation interaction.`);
                 trace('Waiting 5 minutes for Facebook to pass through interaction.');
                 pickedUpInteraction = await interactionConnect.pickupAlertingInteraction(60 * 1000 * 5);
@@ -48,7 +48,7 @@ describe('Social Media - Facebook', () => {
         tcdbTest('57562', '2', `Responding to a Social - Conversation interaction via the post text box.`, { attributes: [{ attribute: global.tcdb.ATTRIBUTE_SOCIAL_CONVERSATION_INTERACTION_TYPE, value: 'Facebook' }] },
             async (addStep: Function, trace: Function) => {
                 addStep(`Using TestAgent's web client, in the 'Current Interaction' view, type out the text of choice in the post text box, and press the send button.`);
-                comment = (await interactionConnect.replyToFacebookRootPostAndVerifyReply(randomWords(10).join(' '))).asElement();
+                comment = (await interactionConnect.replyToRootPostAndVerifyReply(randomWords(10).join(' '))).asElement();
                 expect(comment).toBeTruthy();
             }, 10 * 60 * 1000 // We give a long timeout here in case the interaction takes forever.
         );
@@ -57,7 +57,7 @@ describe('Social Media - Facebook', () => {
             async (addStep: Function, trace: Function) => {
                 addStep(`Using TestAgent's web client, in the 'Current Interaction' view, select the comment icon underneath the post that is to be commented on.`);
                 addStep(`Type out the text of choice in the post text box, and press the send button..`);
-                const commentReply = await interactionConnect.replyToFacebookCommentAndVerifyReply(comment, randomWords(10).join(' '));
+                const commentReply = await interactionConnect.replyToCommentAndVerifyReply(comment, randomWords(10).join(' '));
                 expect(commentReply).toBeTruthy();
             }, 10 * 60 * 1000 // We give a long timeout here in case the interaction takes forever.
         );
@@ -85,7 +85,7 @@ describe('Social Media - Facebook', () => {
                 // the user tiemout on the ACD assignment. Then, the user would go back to available and we would ahve two
                 // non connected interactions to quickly peek at (before the ACD timeout). This would be more reliable
                 // than getting two posts to come through within the ACD timeout timeframe.
-                
+
                 addStep(`Place 2 different Social - Conversation interactions into TestWorkgroup's queue.`);
                 // Make a Facebook post
                 const post1 = await facebook.postRandom();
@@ -95,7 +95,7 @@ describe('Social Media - Facebook', () => {
                 const pickedUpInteraction1 = await interactionConnect.pickupAlertingInteraction(60 * 1000 * 5);
 
                 addStep(`Select one of the alerting Social - Conversation interactions.`);
-                expect(await interactionConnect.verifyFacebookPostVisible(post1)).toBeTruthy();
+                expect(await interactionConnect.verifyPostVisible(post1)).toBeTruthy();
 
                 // Make a Facebook post
                 const post2 = await facebook.postRandom();
@@ -105,14 +105,14 @@ describe('Social Media - Facebook', () => {
                 const pickedUpInteraction2 = await interactionConnect.pickupAlertingInteraction(60 * 1000 * 5);
 
                 addStep(`Select the second alerting Social - Conversation interaction.`);
-                expect(await interactionConnect.verifyFacebookPostVisible(post2)).toBeTruthy();
+                expect(await interactionConnect.verifyPostVisible(post2)).toBeTruthy();
 
                 addStep(`Select the Social - Conversation interaction that was selected the first time.`);
                 await interactionConnect.clickOnInteraction(pickedUpInteraction1);
                 // Let the current interaction view update.
                 await interactionConnect.waitFor(2000);
 
-                expect(await interactionConnect.verifyFacebookPostVisible(post1)).toBeTruthy();
+                expect(await interactionConnect.verifyPostVisible(post1)).toBeTruthy();
 
                 pickedUpInteractions = { pickedUpInteraction1, pickedUpInteraction2 };
             }, 10 * 60 * 1000 // We give a long timeout here in case the interaction takes forever.
@@ -163,7 +163,7 @@ describe('Social Media - Facebook', () => {
                 addStep(`Re-open the application settings dialog, navigating to the Ring Sounds tab.`);
                 await interactionConnect.openRingSoundsSettings();
                 let reopenSettingsRingSound = await interactionConnect.getCurrentSocialConversationRingSound();         
-                
+
                 expect(reopenSettingsRingSound).toEqual(newRingSound);
 
                 await interactionConnect.toggleSocialConversationRingSound();

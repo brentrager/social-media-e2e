@@ -34,6 +34,14 @@
         "password": "TWITTER PASSWORD",
         "socialConversationWorkgroup": "TWITTER SOCIAL CONVERSATION WORKGROUP"
     },
+    "twitter": {
+        "user": "TWITTER ACCOUNT EMAIL WITH BUSINESS PAGE",
+        "password": "TWITTERPASSWORD",
+        "handle": "TWITTERHANDLE",
+        "user2": "ALTERNATE TWITTER ACCOUNT EMAIL",
+        "password2": "ALTERNATETWITTERPASSWORD",
+        "pageUrl": "URLTOTWITTERBUSINESSPAGE"
+    },
     "tcdb": {
         "baseUrl": "http://tcdb.genesys.com/tcdbv2",
         "build": "ICSERVERBUILD (e.g. 2018-04-18-CL1953827-84)",

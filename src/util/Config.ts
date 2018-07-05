@@ -42,6 +42,15 @@ export interface ConfigTwitter {
     socialConversationWorkgroup: string;
 }
 
+export interface ConfigTwitter {
+    user: string;
+    password: string;
+    handle: string;
+    user2: string;
+    password2: string;
+    pageUrl: string;
+}
+
 export interface ConfigTcdb {
     baseUrl: string;
     build: string;
