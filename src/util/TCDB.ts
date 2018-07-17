@@ -1,3 +1,4 @@
+/* tslint:disable:quotemark max-line-length */
 import { Config } from './Config';
 import * as request from 'request-promise-native';
 import Base from './Base';
@@ -5,18 +6,18 @@ import * as moment from 'moment';
 import { trace } from './trace';
 
 interface TcdbUser {
-    Email: string
+    Email: string;
 }
 
 interface TcdbArchitecture {
-    Id: number,
-    Name: string
+    Id: number;
+    Name: string;
 }
 
 interface TcdbExecutionStep {
-    Result: string,
-    Comment: string,
-    CreatedDateTime: string
+    Result: string;
+    Comment: string;
+    CreatedDateTime: string;
 }
 
 interface TcdbAttributes {
@@ -25,11 +26,11 @@ interface TcdbAttributes {
 }
 
 interface TcdbExecution {
-    User: TcdbUser,
-    Build: any,
-    HowExecuted: string,
-    Result: string,
-    Architecture: TcdbArchitecture,
+    User: TcdbUser;
+    Build: any;
+    HowExecuted: string;
+    Result: string;
+    Architecture: TcdbArchitecture;
     ExecutionSteps: Array<TcdbExecutionStep>;
     Attributes?: Array<TcdbAttributes>;
 }
@@ -50,11 +51,11 @@ export class TCDB extends Base {
     private attributeBrowserVersion = new Map<number, string>();
     private actualBrowserVersion: string;
 
-    public ATTRIBUTE_BROWSER_LIST = 61;
-    public ATTRIBUTE_BROWSER_FREE_ENTRY = 161;
-    public ATTRIBUTE_SOCIAL_CONVERSATION_INTERACTION_TYPE = 162;
+    ATTRIBUTE_BROWSER_LIST = 61;
+    ATTRIBUTE_BROWSER_FREE_ENTRY = 161;
+    ATTRIBUTE_SOCIAL_CONVERSATION_INTERACTION_TYPE = 162;
 
-    private buildUrl(endpoint: string) {
+    private buildUrl(endpoint: string): string {
         return `${this.config.tcdb.baseUrl}/${endpoint}`;
     }
 
@@ -75,39 +76,39 @@ export class TCDB extends Base {
         }
     }
 
-    private getBrowserVersion(browserVersion: string) {
+    private getBrowserVersion(browserVersion: string): void {
         // Format: Chrome/67.0.3391.0
         // Want to turn it into "Chrome 67"
-        this.actualBrowserVersion = `${browserVersion.split('/')[0]} ${browserVersion.split('/')[1].split('.')[0]}`;        
+        this.actualBrowserVersion = `${browserVersion.split('/')[0]} ${browserVersion.split('/')[1].split('.')[0]}`;
     }
 
-    private async initializeAttributes(browserVersion: string) {
+    private async initializeAttributes(browserVersion: string): Promise<void> {
         this.getBrowserVersion(browserVersion);
 
-        for (let attribute of [this.ATTRIBUTE_BROWSER_FREE_ENTRY, this.ATTRIBUTE_BROWSER_LIST, this.ATTRIBUTE_SOCIAL_CONVERSATION_INTERACTION_TYPE]) {
-            let options = {
+        for (const attribute of [this.ATTRIBUTE_BROWSER_FREE_ENTRY, this.ATTRIBUTE_BROWSER_LIST, this.ATTRIBUTE_SOCIAL_CONVERSATION_INTERACTION_TYPE]) {
+            const options = {
                 method: 'GET',
                 uri: this.buildUrl(`api/attributes/${attribute}`),
                 headers: { token: this.token },
                 json: true
             };
 
-            let attributeData = await request(options);
+            const attributeData = await request(options);
             this.attributes.set(attribute, attributeData);
 
             // Get browser version attribute
             if (attribute === this.ATTRIBUTE_BROWSER_FREE_ENTRY || attribute === this.ATTRIBUTE_BROWSER_LIST) {
-                let chromeBrowserVersionsSet = new Set<string>();
+                const chromeBrowserVersionsSet = new Set<string>();
 
                 // Find the max legal chrome version.
                 let maxVersionNum = 0;
                 let maxChromeVersion = '';
-                for (let version of attributeData.LegalValues) {
-                    let browserString: string = version.Value;
+                for (const version of attributeData.LegalValues) {
+                    const browserString: string = version.Value;
                     if (browserString.match(/Chrome \d+/)) {
                         chromeBrowserVersionsSet.add(browserString);
-                        let parts = browserString.split(' ');
-                        let versionNum = parseInt(parts[1]);
+                        const parts = browserString.split(' ');
+                        const versionNum = parseInt(parts[1], 10);
                         maxVersionNum = Math.max(maxVersionNum, versionNum);
                         if (maxVersionNum === versionNum) {
                             maxChromeVersion = browserString;
@@ -120,7 +121,7 @@ export class TCDB extends Base {
         }
     }
 
-    public async initialize(browserVersion: string) {
+    async initialize(browserVersion: string): Promise<void> {
         try {
             this.log('Initializing TCDB');
 
@@ -151,11 +152,11 @@ export class TCDB extends Base {
         }
     }
 
-    public async submitSuccess(tcNumber: string, tcVersion: string, stepCount: number, options: any) {
+    async submitSuccess(tcNumber: string, tcVersion: string, stepCount: number, options: any): Promise<void> {
         try {
             if (!this.build) { throw new Error('Cannot submit results without build.'); }
             if (!this.token) { throw new Error('Cannot submit results without logging in.'); }
-            let execution = <TcdbExecution>{};
+            const execution = {} as TcdbExecution;
             if (this.config.tcdb.email) {
                 execution.User = {Email: this.config.tcdb.email};
             }
@@ -163,34 +164,33 @@ export class TCDB extends Base {
             execution.HowExecuted = 'Automated';
             execution.Result = 'Passed';
             execution.Architecture = {Id: 1, Name: 'Premises'};
-            execution.Attributes = [];            
+            execution.Attributes = [];
             execution.ExecutionSteps = [];
             for (let i = 0; i < stepCount; i++) {
-                execution.ExecutionSteps.push({Result: 'Passed', Comment: '', CreatedDateTime: moment().toISOString()})
+                execution.ExecutionSteps.push({Result: 'Passed', Comment: '', CreatedDateTime: moment().toISOString()});
             }
 
             if (options && options.attributes && options.attributes.length) {
-                for (let attribute of options.attributes)
-                {
+                for (const attribute of options.attributes) {
                     if (attribute.attribute && attribute.attribute === this.ATTRIBUTE_BROWSER_FREE_ENTRY || attribute.attribute === this.ATTRIBUTE_BROWSER_LIST) {
-                        let browserVersionAttribute: TcdbAttributes = {
+                        const browserVersionAttribute: TcdbAttributes = {
                             AttributeType: this.attributes.get(attribute.attribute),
                             Value: this.attributeBrowserVersion.get(attribute.attribute)
                         };
 
                         execution.Attributes.push(browserVersionAttribute);
                     } else if (attribute.attribute && attribute.attribute === this.ATTRIBUTE_SOCIAL_CONVERSATION_INTERACTION_TYPE && attribute.value) {
-                        let socialConversationInteractionTypeAttribute: TcdbAttributes = {
+                        const socialConversationInteractionTypeAttribute: TcdbAttributes = {
                             AttributeType: this.attributes.get(attribute.attribute),
                             Value: attribute.value
-                        }
+                        };
 
                         execution.Attributes.push(socialConversationInteractionTypeAttribute);
                     }
                 }
             }
 
-            let requestOptions = {
+            const requestOptions = {
                 method: 'POST',
                 uri: this.buildUrl(`api/testcases/${tcNumber}/${tcVersion}/Executions`),
                 headers: {token: this.token},
@@ -210,29 +210,30 @@ export class TCDB extends Base {
 
     testMap: Map<string, TcdbTest> = new Map();
 
-    public addTest(jestDescription: string, tcdbTest: TcdbTest) {
-        this.testMap.set(jestDescription, tcdbTest);
+    addTest(jestDescription: string, tcdbTest1: TcdbTest): void {
+        this.testMap.set(jestDescription, tcdbTest1);
     }
 
-    public addStep(jestDescription: string) {
-        const tcdbTest = this.testMap.get(jestDescription);
-        if (tcdbTest) {
-            return ++tcdbTest.stepCount;
+    addStep(jestDescription: string): number {
+        const tcdbTest1 = this.testMap.get(jestDescription);
+        if (tcdbTest1) {
+            return ++tcdbTest1.stepCount;
         }
+
         return -1;
     }
 
-    public async submitTest(jestDescription: string) {
-        const tcdbTest = this.testMap.get(jestDescription);
+    async submitTest(jestDescription: string): Promise<void> {
+        const tcdbTest1 = this.testMap.get(jestDescription);
         if (tcdbTest) {
-            await this.submitSuccess(tcdbTest.number, tcdbTest.version, tcdbTest.stepCount, tcdbTest.options);
-            const testName = `${tcdbTest.number}.${tcdbTest.version}`;
-            trace(testName, `Submitted PASS for '${tcdbTest.description}'.`);
+            await this.submitSuccess(tcdbTest1.number, tcdbTest1.version, tcdbTest1.stepCount, tcdbTest1.options);
+            const testName = `${tcdbTest1.number}.${tcdbTest1.version}`;
+            trace(testName, `Submitted PASS for '${tcdbTest1.description}'.`);
         }
     }
 }
 
-export function setupTCDBJasmineReporter() {
+export function setupTCDBJasmineReporter(): void {
     const tcdbJasmineReporter = {
         specDone: async (result) => {
             if (global.tcdb && result.status && result.status === 'passed') {
@@ -245,19 +246,19 @@ export function setupTCDBJasmineReporter() {
     // This makes tests stop executing after the first failure.
 }
 
-function addStep(testName: string, jestDescription: string) {
+function addStep(testName: string, jestDescription: string): Function {
     return (stepDescription?: string) => {
         if (global.tcdb) {
             const step = global.tcdb.addStep(jestDescription);
             trace(testName, `Step ${step} - ${stepDescription}`);
         }
-    }
-};
+    };
+}
 
-function testTrace(testName: string) {
+function testTrace(testName: string): Function {
     return (logTrace: any) => {
         trace(testName, logTrace);
-    }
+    };
 }
 
 interface TcdbTestFunction {
@@ -267,25 +268,27 @@ interface TcdbTestFunction {
 }
 
 export const tcdbTest: TcdbTestFunction = (() => {
-    let _tcdbTest: any = function (tcNumber: string, tcVersion: string, tcDescription: string, tcOptions: any, testFunction: any, timeoutMs = 5 * 60 * 1000, jestFunction = test) {
+    const _tcdbTest: any = (tcNumber: string, tcVersion: string, tcDescription: string, tcOptions: any, testFunction: any, timeoutMs = 5 * 60 * 1000, jestFunction = test) => {
         const testName = `${tcNumber}.${tcVersion}`;
         const jestDescription = `${testName}: ${tcDescription}`;
-        const tcdbTest = {} as TcdbTest;
-        tcdbTest.number = tcNumber;
-        tcdbTest.version = tcVersion;
-        tcdbTest.stepCount = 0;
-        tcdbTest.description = tcDescription;
-        tcdbTest.options = tcOptions;
+        const tcdbTest1 = {} as TcdbTest;
+        tcdbTest1.number = tcNumber;
+        tcdbTest1.version = tcVersion;
+        tcdbTest1.stepCount = 0;
+        tcdbTest1.description = tcDescription;
+        tcdbTest1.options = tcOptions;
         if (global.tcdb) {
-            global.tcdb.addTest(jestDescription, tcdbTest);
+            global.tcdb.addTest(jestDescription, tcdbTest1);
         }
+
         return jestFunction.each([[addStep(testName, jestDescription), testTrace(testName)]])(jestDescription, testFunction, timeoutMs);
-    }
-    _tcdbTest.skip = function tcdbTestSkip(tcNumber: string, tcVersion: string, tcDescription: string, tcOptions: any, testFunction: any, timeoutMs?: number) {
+    };
+    _tcdbTest.skip = function tcdbTestSkip(tcNumber: string, tcVersion: string, tcDescription: string, tcOptions: any, testFunction: any, timeoutMs?: number): Function {
         return _tcdbTest(tcNumber, tcVersion, tcDescription, tcOptions, testFunction, timeoutMs, test.only);
-    }
-    _tcdbTest.only = function tcdbTestSkip(tcNumber: string, tcVersion: string, tcDescription: string, tcOptions: any, testFunction: any, timeoutMs?: number) {
+    };
+    _tcdbTest.only = function tcdbTestSkip(tcNumber: string, tcVersion: string, tcDescription: string, tcOptions: any, testFunction: any, timeoutMs?: number): Function {
         return _tcdbTest(tcNumber, tcVersion, tcDescription, tcOptions, testFunction, timeoutMs, test.only);
-    }
+    };
+
     return _tcdbTest;
 })();
