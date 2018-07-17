@@ -1,3 +1,4 @@
+/* tslint:disable:quotemark max-line-length */
 import { config } from '../util/Config';
 import InteractionConnect from '../util/InteractionConnect';
 import Facebook from '../util/Facebook';
@@ -31,7 +32,7 @@ describe('Social Media - Facebook', () => {
         });
 
         let pickedUpInteraction: string;
-        tcdbTest('57556', '2', `Pickup a Social - Conversation Interaction`, { attributes: [{ attribute: global.tcdb.ATTRIBUTE_SOCIAL_CONVERSATION_INTERACTION_TYPE, value: 'Facebook' }] }, 
+        tcdbTest('57556', '2', `Pickup a Social - Conversation Interaction`, { attributes: [{ attribute: global.tcdb.ATTRIBUTE_SOCIAL_CONVERSATION_INTERACTION_TYPE, value: 'Facebook' }] },
             async (addStep: Function, trace: Function) => {
                 addStep(`Place a Social - Conversation interaction into TestWorkgroup's queue.`);
                 // Make a Facebook post
@@ -42,7 +43,7 @@ describe('Social Media - Facebook', () => {
                 pickedUpInteraction = await interactionConnect.pickupAlertingInteraction(60 * 1000 * 5);
                 expect(pickedUpInteraction).toBeTruthy();
             }, 10 * 60 * 1000 // We give a long timeout here in case the interaction takes forever.
-        ); 
+        );
 
         let comment: puppeteer.ElementHandle;
         tcdbTest('57562', '2', `Responding to a Social - Conversation interaction via the post text box.`, { attributes: [{ attribute: global.tcdb.ATTRIBUTE_SOCIAL_CONVERSATION_INTERACTION_TYPE, value: 'Facebook' }] },
@@ -128,7 +129,7 @@ describe('Social Media - Facebook', () => {
                 await interactionConnect.filterQueueOnSocialConversations();
                 expect(await interactionConnect.getInteractionRow(pickedUpInteractions.pickedUpInteraction1)).toBeTruthy();
 
-                await interactionConnect.clearQueueFilter();            
+                await interactionConnect.clearQueueFilter();
             }
         );
 
@@ -155,14 +156,14 @@ describe('Social Media - Facebook', () => {
 
                 addStep(`Choose a ring sound from the menu (other than the currently selected option) for Social - Conversation interactions.`);
                 addStep(`Save the settings.`);
-                let originalRingSound = await interactionConnect.getCurrentSocialConversationRingSound();
-                let newRingSound = await interactionConnect.toggleSocialConversationRingSound();
+                const originalRingSound = await interactionConnect.getCurrentSocialConversationRingSound();
+                const newRingSound = await interactionConnect.toggleSocialConversationRingSound();
 
                 expect(originalRingSound).not.toEqual(newRingSound);
 
                 addStep(`Re-open the application settings dialog, navigating to the Ring Sounds tab.`);
                 await interactionConnect.openRingSoundsSettings();
-                let reopenSettingsRingSound = await interactionConnect.getCurrentSocialConversationRingSound();         
+                const reopenSettingsRingSound = await interactionConnect.getCurrentSocialConversationRingSound();
 
                 expect(reopenSettingsRingSound).toEqual(newRingSound);
 
@@ -176,4 +177,4 @@ describe('Social Media - Facebook', () => {
         await interactionConnect.disconnectInteractions();
         await interactionConnect.logout();
     });
-})
+});

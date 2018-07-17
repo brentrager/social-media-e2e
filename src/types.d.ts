@@ -1,5 +1,6 @@
-declare module "random-words";
-declare module "jasmine-fail-fast";
+/* tslint:disable */
+declare module 'random-words';
+declare module 'jasmine-fail-fast';
 
 declare namespace NodeJS {
   interface Global {

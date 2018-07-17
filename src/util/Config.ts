@@ -1,4 +1,4 @@
-import * as fs from "fs";
+import * as fs from 'fs';
 
 export interface ConfigIc {
     server: string;
@@ -44,9 +44,9 @@ class ConfigReader {
     config: Config;
     constructor() {
         try {
-            this.config = <Config>(
-                JSON.parse(fs.readFileSync("config.json").toString())
-            );
+            this.config = (
+                JSON.parse(fs.readFileSync('config.json').toString())
+            ) as Config;
         } catch (error) {
             console.error(`Error reading config.json: ${error}`);
             console.error(error);
