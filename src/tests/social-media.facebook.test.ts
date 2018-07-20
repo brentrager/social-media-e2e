@@ -109,6 +109,7 @@ describe('Social Media - Facebook', () => {
                 expect(await interactionConnect.verifyPostVisible(post2)).toBeTruthy();
 
                 addStep(`Select the Social - Conversation interaction that was selected the first time.`);
+                await interactionConnect.openMyInteractionsTab();
                 await interactionConnect.clickOnInteraction(pickedUpInteraction1);
                 // Let the current interaction view update.
                 await interactionConnect.waitFor(2000);
@@ -119,10 +120,10 @@ describe('Social Media - Facebook', () => {
             }, 10 * 60 * 1000 // We give a long timeout here in case the interaction takes forever.
         );
 
-        tcdbTest('57552', '1', `Filter a User Queue By Social - Conversation Interaction Type`, { attributes: [{ attribute: global.tcdb.ATTRIBUTE_BROWSER_LIST }] },
+        tcdbTest('57552', '1', `Filter a User Queue By Social - Conversation Interaction Type`, { attributes: [{ attribute: global.tcdb.ATTRIBUTE_SOCIAL_CONVERSATION_INTERACTION_TYPE, value: 'Facebook' }] },
             async (addStep: Function, trace: Function) => {
                 addStep(`Add TestUser's user queue view to TestUser's web client.`);
-                await interactionConnect.openTab(config.ic.user);
+                await interactionConnect.openUserQueueTab(config.ic.user);
 
                 addStep(`Click the filter queue button.`);
                 addStep(`Choose to filter the user queue by the Social - Conversation interaction type.`);
@@ -133,10 +134,10 @@ describe('Social Media - Facebook', () => {
             }
         );
 
-        tcdbTest('57548', '3', `Filter a Workgroup Queue By Social - Conversation Interaction Type`, { attributes: [{ attribute: global.tcdb.ATTRIBUTE_BROWSER_LIST }] },
+        tcdbTest('57548', '3', `Filter a Workgroup Queue By Social - Conversation Interaction Type`, { attributes: [{ attribute: global.tcdb.ATTRIBUTE_SOCIAL_CONVERSATION_INTERACTION_TYPE, value: 'Facebook' }] },
             async (addStep: Function, trace: Function) => {
                 addStep(`Add TestWorkgroup's workgroup queue view to TestUser's web client.`);
-                await interactionConnect.openTab(config.ic.workgroup);
+                await interactionConnect.openWorkgroupQueueTab(config.ic.workgroup);
 
                 addStep(`Click the filter queue button.`);
                 addStep(`Choose to filter the workgroup queue by the Social - Conversation interaction type.`);
@@ -149,7 +150,7 @@ describe('Social Media - Facebook', () => {
     });
 
     describe('Social Media Ring Sound', () => {
-        tcdbTest('57547', '0', `Configure Ring Sound for Social - Conversations`, { attributes: [{ attribute: global.tcdb.ATTRIBUTE_BROWSER_FREE_ENTRY }] },
+        tcdbTest('57547', '0', `Configure Ring Sound for Social - Conversations`, { attributes: [{ attribute: global.tcdb.ATTRIBUTE_SOCIAL_CONVERSATION_INTERACTION_TYPE, value: 'Facebook' }] },
             async (addStep: Function, trace: Function) => {
                 addStep(`Open the application settings dialog and navigate to the ring sounds settings page.`);
                 await interactionConnect.openRingSoundsSettings();

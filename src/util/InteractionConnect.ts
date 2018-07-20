@@ -140,6 +140,7 @@ export default class InteractionConnect extends Base {
 
     async pickupAlertingInteraction(timeout: number = this.DEFAULT_TIMEOUT): Promise<string> {
         await this.page.bringToFront();
+        await this.openMyInteractionsTab();
         const interactionToPickUp = await this.waitForStateAndGetInteractionInState('Alerting', undefined, timeout);
 
         if (!interactionToPickUp) {
@@ -151,6 +152,7 @@ export default class InteractionConnect extends Base {
 
     async pickupInteraction(interaction: string, timeout: number = this.DEFAULT_TIMEOUT): Promise<string | undefined> {
         await this.page.bringToFront();
+        await this.openMyInteractionsTab();
         await this.performActionOnInteraction(interaction, 'pickup');
 
         const pickedupInteraction = await this.waitForStateAndGetInteractionInState('ACD - Assigned', interaction, timeout);
@@ -160,6 +162,7 @@ export default class InteractionConnect extends Base {
 
     async disconnectInteraction(interaction: string, timeout: number = this.DEFAULT_TIMEOUT): Promise<string | undefined> {
         await this.page.bringToFront();
+        await this.openMyInteractionsTab();
         await this.performActionOnInteraction(interaction, 'disconnect');
 
         const disconnectedInteraction = await this.waitForStateAndGetInteractionInState('Disconnected', interaction, timeout);
@@ -169,6 +172,7 @@ export default class InteractionConnect extends Base {
 
     async disconnectInteractions(timeout: number = this.DEFAULT_TIMEOUT): Promise<void> {
         await this.page.bringToFront();
+        await this.openMyInteractionsTab();
         const interactions = await this.getInteractionStates();
         this.log('Disconnecting all interactions');
         for (const [interaction, state] of interactions) {
@@ -180,6 +184,7 @@ export default class InteractionConnect extends Base {
 
     async holdInteraction(interaction: string, timeout: number = this.DEFAULT_TIMEOUT): Promise<string | undefined> {
         await this.page.bringToFront();
+        await this.openMyInteractionsTab();
         await this.performActionOnInteraction(interaction, 'hold');
 
         const heldInteraction = await this.waitForStateAndGetInteractionInState('Held', interaction, timeout);
@@ -215,6 +220,7 @@ export default class InteractionConnect extends Base {
 
     async replyToRootPostAndVerifyReply(reply: string): Promise<puppeteer.JSHandle> {
         await this.page.bringToFront();
+        await this.openCurrentInteractionTab();
         const replyTextArea = await this.checkOrWaitFor(`textarea[data-inintest="social-conversation-composition-text-input"]`) as puppeteer.ElementHandle;
 
         await replyTextArea.type(reply);
@@ -230,6 +236,7 @@ export default class InteractionConnect extends Base {
 
     async replyToCommentAndVerifyReply(comment: puppeteer.ElementHandle, reply: string): Promise<puppeteer.JSHandle> {
         await this.page.bringToFront();
+        await this.openCurrentInteractionTab();
         const replyButton = await comment.$('span.toolbar-image') as puppeteer.ElementHandle;
         await replyButton.click();
 
@@ -247,6 +254,7 @@ export default class InteractionConnect extends Base {
 
     async verifyPostVisible(post: string): Promise<boolean> {
         await this.page.bringToFront();
+        await this.openCurrentInteractionTab();
         const postDiv = await this.checkOrWaitFor(`div.company-post-text`) as puppeteer.ElementHandle;
         const postText = await (await postDiv.getProperty('innerHTML')).jsonValue();
         this.log(`Verifying post '${post}'. Found: '${postText}'`);
@@ -256,6 +264,7 @@ export default class InteractionConnect extends Base {
 
     async verifyPostContainsText(post: string): Promise<boolean> {
         await this.page.bringToFront();
+        await this.openCurrentInteractionTab();
         const postDiv = await this.checkOrWaitFor(`div.company-post-text`) as puppeteer.ElementHandle;
         const postText = await (await postDiv.getProperty('innerHTML')).jsonValue();
         this.log(`Verifying post '${post}'. Found: '${postText}'`);
@@ -265,6 +274,7 @@ export default class InteractionConnect extends Base {
 
     async verifyPostContainsLink(link: string): Promise<boolean> {
         await this.page.bringToFront();
+        await this.openCurrentInteractionTab();
         const postDivLink = await this.checkOrWaitFor(`div.company-post-text a`) as puppeteer.ElementHandle;
         const linkText = await (await postDivLink.getProperty('href')).jsonValue();
         const testPage = await this.browser.newPage();
@@ -279,6 +289,7 @@ export default class InteractionConnect extends Base {
 
     async verifyImageVisible(): Promise<puppeteer.ElementHandle> {
         await this.page.bringToFront();
+        await this.openCurrentInteractionTab();
         const postDiv = await this.checkOrWaitFor(`div.company-post-container-open img.image`) as puppeteer.ElementHandle;
 
         return postDiv;
@@ -289,21 +300,115 @@ export default class InteractionConnect extends Base {
         await this.page.waitFor(timeout);
     }
 
+    async waitForTabToOpen(tabName: string): Promise<puppeteer.ElementHandle> {
+        await this.page.bringToFront();
+
+        // If this selector is available, the tab is available.
+        return await this.checkOrWaitFor(`span.inin-docking-region-display-name[uib-tooltip="${tabName}"]`);
+    }
+
+    async tabIsAvailable(tabName: string): Promise<boolean> {
+        await this.page.bringToFront();
+
+        // If this selector is available, the tab is available.
+        return !!await this.page.$(`span.inin-docking-region-display-name[uib-tooltip="${tabName}"]`);
+    }
+
     async openTab(tabName: string): Promise<void> {
+        if (!await this.tabIsAvailable(tabName)) {
+            const error = new Error(`Tab '${tabName}' not available.`);
+            this.logError(`Error launching: ${error}`);
+            throw error;
+        }
         await this.page.bringToFront();
         await this.page.click(`span.inin-docking-region-display-name[uib-tooltip="${tabName}"]`);
         this.log(`Opening tab: ${tabName}`);
         await this.page.waitFor(5000);
     }
 
+    async openMyInteractionsTab(): Promise<void> {
+        const myInteractionsView = 'My Interactions';
+        await this.openTab(myInteractionsView);
+    }
+
+    async openCurrentInteractionTab(): Promise<void> {
+        const currentInteractionView = 'Current Interaction';
+        if (await this.tabIsAvailable(currentInteractionView)) {
+            this.openTab(currentInteractionView);
+        } else {
+            // Open the Current Interaction View
+            // Click add view icon
+            await this.page.click('button[data-inintest="docking-add-view"] i.glyphicons-plus');
+            await this.checkOrWaitFor('button[data-inintest="add-view-popover-center-show-all"]');
+            await this.page.click('button[data-inintest="add-view-popover-center-show-all"]');
+            await this.checkOrWaitFor('label[data-inintest="add-view-dialog-item-interactionEditor"]');
+            // Click Current Interaction
+            await this.page.click('label[data-inintest="add-view-dialog-item-interactionEditor"]');
+            // Click Add View
+            await this.page.click('button[data-inintest="add-link"]');
+            await this.waitForTabToOpen(currentInteractionView);
+            await this.openTab(currentInteractionView);
+        }
+    }
+
+    async openUserQueueTab(userQueue: string): Promise<void> {
+        if (await this.tabIsAvailable(userQueue)) {
+            await this.page.waitFor(5000); // No idea why this needs to be here.
+            await this.openTab(userQueue);
+        } else {
+            // Open the User Queue View
+            // Click add view icon
+            await this.page.click('button[data-inintest="docking-add-view"] i.glyphicons-plus');
+            await this.checkOrWaitFor('button[data-inintest="add-view-popover-center-show-all"]');
+            await this.page.click('button[data-inintest="add-view-popover-center-show-all"]');
+            // Click User Queue
+            await this.checkOrWaitFor('label[data-inintest="add-view-dialog-item-userQueue"]');
+            await this.page.click('label[data-inintest="add-view-dialog-item-userQueue"]');
+            // Search for userQueue
+            await this.checkOrWaitFor('input[data-inintest="add-view-dialog-userQueue-search"]');
+            await this.page.type('input[data-inintest="add-view-dialog-userQueue-search"]', userQueue);
+            // Click userQueue
+            await this.checkOrWaitFor(`label[data-inintest="add-view-dialog-userQueue-popover-item-${userQueue}-label"]`);
+            await this.page.click(`label[data-inintest="add-view-dialog-userQueue-popover-item-${userQueue}-label"]`);
+            // Click Add View
+            await this.page.click('button[data-inintest="add-link"]');
+            await this.waitForTabToOpen(userQueue);
+            await this.openTab(userQueue);
+        }
+    }
+
+    async openWorkgroupQueueTab(workgroupQueue: string): Promise<void> {
+        if (await this.tabIsAvailable(workgroupQueue)) {
+            await this.page.waitFor(5000); // No idea why this needs to be here.
+            await this.openTab(workgroupQueue);
+        } else {
+            // Open the Workgroup Queue View
+            // Click add view icon
+            await this.page.click('button[data-inintest="docking-add-view"] i.glyphicons-plus');
+            await this.checkOrWaitFor('button[data-inintest="add-view-popover-center-show-all"]');
+            await this.page.click('button[data-inintest="add-view-popover-center-show-all"]');
+            // Click Workgroup Queue
+            await this.checkOrWaitFor('label[data-inintest="add-view-dialog-item-workgroupQueue"]');
+            await this.page.click('label[data-inintest="add-view-dialog-item-workgroupQueue"]');
+            // Search for workgroupQueue
+            await this.checkOrWaitFor('input[data-inintest="add-view-dialog-workgroupQueue-search"]');
+            await this.page.type('input[data-inintest="add-view-dialog-workgroupQueue-search"]', workgroupQueue);
+            // Click workgroupQueue
+            await this.checkOrWaitFor(`label[data-inintest="add-view-dialog-workgroupQueue-popover-item-${workgroupQueue}-label"]`);
+            await this.page.click(`label[data-inintest="add-view-dialog-workgroupQueue-popover-item-${workgroupQueue}-label"]`);
+            // Click Add View
+            await this.page.click('button[data-inintest="add-link"]');
+            await this.waitForTabToOpen(workgroupQueue);
+            await this.openTab(workgroupQueue);
+        }
+    }
+
     async clearQueueFilter(): Promise<void> {
         await this.page.bringToFront();
         const iconFilter = await this.checkOrWaitFor(`i.icon-filter`, this.DEFAULT_TIMEOUT, true) as puppeteer.ElementHandle;
         await iconFilter.click();
-        const interactionTypeSelect = await this.checkOrWaitFor(`div.popover-content div[data-inintest="filter-interaction-types-multiselect inin-checkbox-multiselect-All"]`) as puppeteer.ElementHandle;
-        await interactionTypeSelect.click();
-        const deselectAllButton = await this.checkOrWaitFor(`div.popover-content button[data-inintest="inin-checkbox-multiselect-deselect-all"]`) as puppeteer.ElementHandle;
-        await deselectAllButton.click();
+        const resetButton = await this.checkOrWaitFor('button[data-inintest=filter-clear-filter]') as puppeteer.ElementHandle;
+        await resetButton.click();
         await iconFilter.click();
         await this.page.waitFor(5000);
     }

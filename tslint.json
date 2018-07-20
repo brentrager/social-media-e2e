@@ -234,6 +234,7 @@
             "allow-fast-null-checks"
         ],
         "no-empty": false,
-        "no-sparse-arrays": true
+        "no-sparse-arrays": true,
+        "no-floating-promises": true
     }
 }
