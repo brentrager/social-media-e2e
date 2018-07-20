@@ -12,6 +12,27 @@ export default class Twitter extends Base {
         this.logTopic = 'Twitter';
     }
 
+    async authorize(authUrl: string): Promise<void> {
+        try {
+            this.log(`Authorizing Twitter`);
+            // Load the page
+            const twitterLoginPage = await this.browser.newPage();
+            await twitterLoginPage.setViewport({ width: 1000, height: 800 });
+            await twitterLoginPage.goto(authUrl);
+            const twitterUsernameInput: puppeteer.ElementHandle = (await twitterLoginPage.waitFor('#username_or_email')).asElement() as puppeteer.ElementHandle;
+            await twitterUsernameInput.type(this.config.twitter.user);
+            const twitterPasswordInput: puppeteer.ElementHandle = (await twitterLoginPage.waitFor('#password')).asElement() as puppeteer.ElementHandle;
+            await twitterPasswordInput.type(this.config.twitter.password);
+            const twitterLoginButton: puppeteer.ElementHandle = (await twitterLoginPage.waitFor('#allow')).asElement() as puppeteer.ElementHandle;
+            await twitterLoginButton.click();
+            const closePopupLink: puppeteer.ElementHandle = (await twitterLoginPage.waitFor('body > div > div > div.well > div > div > p:nth-child(3) > a')).asElement() as puppeteer.ElementHandle;
+            await closePopupLink.click();
+            twitterLoginPage.close();
+        } catch (error) {
+            this.logError(`Error launching: ${error}`);
+            throw error;
+        }
+    }
     async launch(): Promise<void> {
         try {
             // Get the url

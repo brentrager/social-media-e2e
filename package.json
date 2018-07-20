@@ -28,7 +28,8 @@
     "request-promise-native": "^1.0.5",
     "ts-jest-babel-7": "^22.0.7",
     "ts-node": "^5.0.1",
-    "typescript": "2.7.1"
+    "typescript": "2.7.1",
+    "xmlhttprequest-cookie": "^0.9.6"
   },
   "devDependencies": {
     "eslint": "^4.19.1",

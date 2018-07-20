@@ -1,0 +1,7 @@
+{
+    "name": "icws",
+    "version": "18.5.0+32",
+    "visibility": "internal",
+    "private": true,
+    "description": "ICWS CommonJS SDK"
+}

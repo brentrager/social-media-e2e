@@ -12,6 +12,28 @@ export default class Facebook extends Base {
         this.logTopic = 'Facebook';
     }
 
+    async authorize(authUrl: string): Promise<void> {
+        try {
+            this.log('Authorizing Facebook');
+            // Load the page
+            const facebookLoginPage = await this.browser.newPage();
+            await facebookLoginPage.setViewport({ width: 1000, height: 800 });
+            await facebookLoginPage.goto(authUrl);
+            const facebookUsernameInput: puppeteer.ElementHandle = (await facebookLoginPage.waitFor('#email')).asElement() as puppeteer.ElementHandle;
+            await facebookUsernameInput.type(this.config.facebook.user);
+            const facebookPasswordInput: puppeteer.ElementHandle = (await facebookLoginPage.waitFor('#pass')).asElement() as puppeteer.ElementHandle;
+            await facebookPasswordInput.type(this.config.facebook.password);
+            const facebookLoginButton: puppeteer.ElementHandle = (await facebookLoginPage.waitFor('#loginbutton')).asElement() as puppeteer.ElementHandle;
+            await facebookLoginButton.click();
+            const closePopupLink: puppeteer.ElementHandle = (await facebookLoginPage.waitFor('body > div > div > div.well > div > div > p:nth-child(3) > a')).asElement() as puppeteer.ElementHandle;
+            await closePopupLink.click();
+            facebookLoginPage.close();
+        } catch (error) {
+            this.logError(`Error launching: ${error}`);
+            throw error;
+        }
+    }
+
     async launch(): Promise<void> {
         try {
             // Get the url
