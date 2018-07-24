@@ -19,6 +19,7 @@
     "jasmine-fail-fast": "^2.0.0",
     "jest": "^23.1.0",
     "jest-environment-puppeteer": "^2.4.0",
+    "jest-environment-node": "^22.0.0",
     "jest-puppeteer": "^3.0.1",
     "minimist": "^1.2.0",
     "moment": "^2.22.2",
