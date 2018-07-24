@@ -12,16 +12,6 @@
             true,
             "no-public"
         ],
-        "member-ordering": [
-            true,
-            {
-                "order": [
-                    "public-before-private",
-                    "static-before-instance",
-                    "variables-before-functions"
-                ]
-            }
-        ],
         "adjacent-overload-signatures": true,
         "unified-signatures": true,
         "prefer-function-over-method": [

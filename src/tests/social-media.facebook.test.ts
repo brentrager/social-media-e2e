@@ -127,10 +127,11 @@ describe('Social Media - Facebook', () => {
 
                 addStep(`Click the filter queue button.`);
                 addStep(`Choose to filter the user queue by the Social - Conversation interaction type.`);
-                await interactionConnect.filterQueueOnSocialConversations();
+                await interactionConnect.waitFor(2000);
+                await interactionConnect.filterUserQueueOnSocialConversations();
                 expect(await interactionConnect.getInteractionRow(pickedUpInteractions.pickedUpInteraction1)).toBeTruthy();
 
-                await interactionConnect.clearQueueFilter();
+                await interactionConnect.clearUserQueueFilter();
             }
         );
 
@@ -141,10 +142,11 @@ describe('Social Media - Facebook', () => {
 
                 addStep(`Click the filter queue button.`);
                 addStep(`Choose to filter the workgroup queue by the Social - Conversation interaction type.`);
-                await interactionConnect.filterQueueOnSocialConversations();
+                await interactionConnect.waitFor(2000);
+                await interactionConnect.filterWorkgroupQueueOnSocialConversations();
                 expect(await interactionConnect.getInteractionRow(pickedUpInteractions.pickedUpInteraction1)).toBeTruthy();
 
-                await interactionConnect.clearQueueFilter();
+                await interactionConnect.clearWorkgroupQueueFilter();
             }
         );
     });

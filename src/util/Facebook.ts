@@ -27,7 +27,7 @@ export default class Facebook extends Base {
             await facebookLoginButton.click();
             const closePopupLink: puppeteer.ElementHandle = (await facebookLoginPage.waitFor('body > div > div > div.well > div > div > p:nth-child(3) > a')).asElement() as puppeteer.ElementHandle;
             await closePopupLink.click();
-            facebookLoginPage.close();
+            await facebookLoginPage.close();
         } catch (error) {
             this.logError(`Error launching: ${error}`);
             throw error;

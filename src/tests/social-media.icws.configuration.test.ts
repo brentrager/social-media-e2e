@@ -1,3 +1,4 @@
+/* tslint:disable:quotemark max-line-length */
 import { config } from '../util/Config';
 import ICWS from '../util/ICWS';
 import Facebook from '../util/Facebook';
@@ -18,9 +19,9 @@ describe('Social Media - Configuration', () => {
             expect(result.request.status).toBe(201);
             icws.processCreateConnectionResponse(result.response);
         });
-        await icws.changeStationConnection().then((result: { request: XMLHttpRequest, response: any }) => {
+        await icws.changeStationConnection().then(async (result: { request: XMLHttpRequest, response: any }) => {
             expect(result.request.status).toBe(200);
-            icws.startMessageProcessing();
+            await icws.startMessageProcessing();
         });
         await icws.deleteSocialMediaConfiguration().then((result: { request: XMLHttpRequest, response: any }) => {});
         await icws.getSocialMediaConfiguration().then((result: { request: XMLHttpRequest, response: any }) => {
@@ -123,7 +124,7 @@ describe('Social Media - Configuration', () => {
             expect(result.response.accounts[0].pages[0].id).toBe(facebookPageId);
             expect(result.response.accounts[0].pages[0].name).toBe(facebookPageName);
         });
-        let newFacebookChannelName: string = 'FACEBOOK-ADECE2F4-CAA5-4197-BA71-43FD82190A6E';
+        const newFacebookChannelName: string = 'FACEBOOK-ADECE2F4-CAA5-4197-BA71-43FD82190A6E';
         let newFacebookChannelId: string;
         await icws.createFacebookChannel(facebookAccountId, newFacebookChannelName, facebookPageId, facebookPageName).then((result: { request: XMLHttpRequest, response: any }) => {
             expect(result.request.status).toBe(201);
@@ -210,10 +211,10 @@ describe('Social Media - Configuration', () => {
             expect(result.response.accounts[0].twitterHandle).toBe(twitterHandle);
             expect(result.response.accounts[0].twitterProfileImageUrl).toBe(twitterProfileImageUrl);
         });
-        let newTwitterChannelName: string = 'TWITTER-0C44D6DF-743C-4CE6-89F6-2EAB2652AD44';
+        const newTwitterChannelName: string = 'TWITTER-0C44D6DF-743C-4CE6-89F6-2EAB2652AD44';
         let newTwitterChannelId: string;
-        let keywords:string[] = ['keyword1', 'keyword2'];
-        let handles:string[] = [twitterHandle];
+        const keywords: Array<string> = ['keyword1', 'keyword2'];
+        const handles: Array<string> = [twitterHandle];
         await icws.createTwitterChannel(twitterAccountId, newTwitterChannelName, keywords, handles).then((result: { request: XMLHttpRequest, response: any }) => {
             expect(result.request.status).toBe(201);
             expect(result.response.accountId).toBe(twitterAccountId);
@@ -271,13 +272,13 @@ describe('Social Media - Configuration', () => {
             expect(result.request.status).toBe(404);
         });
         await icws.deleteGenesysHubAccount().then((result: { request: XMLHttpRequest, response: any }) => {
-            expect(result.request.status).toBe(204)
+            expect(result.request.status).toBe(204);
         });
         await icws.getGenesysHubAccount().then((result: { request: XMLHttpRequest, response: any }) => {
             expect(result.request.status).toBe(404);
         });
         await icws.deleteSocialMediaConfiguration().then((result: { request: XMLHttpRequest, response: any }) => {
-            expect(result.request.status).toBe(204)
+            expect(result.request.status).toBe(204);
         });
         await icws.getSocialMediaConfiguration().then((result: { request: XMLHttpRequest, response: any }) => {
             expect(result.request.status).toBe(404);

@@ -72,7 +72,7 @@ export default class InteractionConnect extends Base {
             options.visible = true;
         }
 
-        return ((await this.page.waitForSelector(selector, { timeout })).asElement()) as puppeteer.ElementHandle;
+        return ((await this.page.waitForSelector(selector, options)).asElement()) as puppeteer.ElementHandle;
     }
 
     private async getInteractionStates(): Promise<Map<string, string>> {
@@ -334,7 +334,7 @@ export default class InteractionConnect extends Base {
     async openCurrentInteractionTab(): Promise<void> {
         const currentInteractionView = 'Current Interaction';
         if (await this.tabIsAvailable(currentInteractionView)) {
-            this.openTab(currentInteractionView);
+            await this.openTab(currentInteractionView);
         } else {
             // Open the Current Interaction View
             // Click add view icon
@@ -367,6 +367,9 @@ export default class InteractionConnect extends Base {
             // Search for userQueue
             await this.checkOrWaitFor('input[data-inintest="add-view-dialog-userQueue-search"]');
             await this.page.type('input[data-inintest="add-view-dialog-userQueue-search"]', userQueue);
+
+            // Can't get this to work without a delay.
+            await this.page.waitFor(1000);
             // Click userQueue
             await this.checkOrWaitFor(`label[data-inintest="add-view-dialog-userQueue-popover-item-${userQueue}-label"]`);
             await this.page.click(`label[data-inintest="add-view-dialog-userQueue-popover-item-${userQueue}-label"]`);
@@ -393,6 +396,8 @@ export default class InteractionConnect extends Base {
             // Search for workgroupQueue
             await this.checkOrWaitFor('input[data-inintest="add-view-dialog-workgroupQueue-search"]');
             await this.page.type('input[data-inintest="add-view-dialog-workgroupQueue-search"]', workgroupQueue);
+            // Can't get this to work without a delay.
+            await this.page.waitFor(1000);
             // Click workgroupQueue
             await this.checkOrWaitFor(`label[data-inintest="add-view-dialog-workgroupQueue-popover-item-${workgroupQueue}-label"]`);
             await this.page.click(`label[data-inintest="add-view-dialog-workgroupQueue-popover-item-${workgroupQueue}-label"]`);
@@ -403,21 +408,45 @@ export default class InteractionConnect extends Base {
         }
     }
 
-    async clearQueueFilter(): Promise<void> {
+    async clearUserQueueFilter(): Promise<void> {
         await this.page.bringToFront();
-        const iconFilter = await this.checkOrWaitFor(`i.icon-filter`, this.DEFAULT_TIMEOUT, true) as puppeteer.ElementHandle;
+        const iconFilter = await this.checkOrWaitFor(`div[data-inintest*="ic-interactions-queue-view-User-view"] i.icon-filter`, this.DEFAULT_TIMEOUT, true) as puppeteer.ElementHandle;
         await iconFilter.click();
-        const resetButton = await this.checkOrWaitFor('button[data-inintest=filter-clear-filter]') as puppeteer.ElementHandle;
+        await this.page.waitFor(1000);
+        const resetButton = await this.checkOrWaitFor('div.popover-content button[data-inintest="filter-clear-filter"]', this.DEFAULT_TIMEOUT, true) as puppeteer.ElementHandle;
         await resetButton.click();
         await iconFilter.click();
         await this.page.waitFor(5000);
     }
 
-    async filterQueueOnSocialConversations(): Promise<void> {
+    async clearWorkgroupQueueFilter(): Promise<void> {
         await this.page.bringToFront();
-        const iconFilter = await this.checkOrWaitFor(`i.icon-filter`, this.DEFAULT_TIMEOUT, true) as puppeteer.ElementHandle;
+        const iconFilter = await this.checkOrWaitFor(`div[data-inintest*="ic-interactions-queue-view-Workgroup-view"] i.icon-filter`, this.DEFAULT_TIMEOUT, true) as puppeteer.ElementHandle;
         await iconFilter.click();
-        const interactionTypeSelect = await this.checkOrWaitFor(`div[data-inintest="filter-interaction-types-multiselect inin-checkbox-multiselect-All`, this.DEFAULT_TIMEOUT, true) as puppeteer.ElementHandle;
+        await this.page.waitFor(1000);
+        const resetButton = await this.checkOrWaitFor('div.popover-content button[data-inintest="filter-clear-filter"]', this.DEFAULT_TIMEOUT, true) as puppeteer.ElementHandle;
+        await resetButton.click();
+        await iconFilter.click();
+        await this.page.waitFor(5000);
+    }
+
+    async filterUserQueueOnSocialConversations(): Promise<void> {
+        await this.page.bringToFront();
+        const iconFilter = await this.checkOrWaitFor(`div[data-inintest*="ic-interactions-queue-view-User-view"] i.icon-filter`, this.DEFAULT_TIMEOUT, true) as puppeteer.ElementHandle;
+        await iconFilter.click();
+        const interactionTypeSelect = await this.checkOrWaitFor(`div.popover-content div[data-inintest="filter-interaction-types-multiselect inin-checkbox-multiselect-All`, this.DEFAULT_TIMEOUT, true) as puppeteer.ElementHandle;
+        await interactionTypeSelect.click();
+        const socialConversationCheckbox = await this.checkOrWaitFor(`div.popover-content input[data-inintest="inin-checkbox-multiselect-item-checkbox-Social Conversation"]`) as puppeteer.ElementHandle;
+        await socialConversationCheckbox.click();
+        await iconFilter.click();
+        await this.page.waitFor(5000);
+    }
+
+    async filterWorkgroupQueueOnSocialConversations(): Promise<void> {
+        await this.page.bringToFront();
+        const iconFilter = await this.checkOrWaitFor(`div[data-inintest*="ic-interactions-queue-view-Workgroup-view"] i.icon-filter`, this.DEFAULT_TIMEOUT, true) as puppeteer.ElementHandle;
+        await iconFilter.click();
+        const interactionTypeSelect = await this.checkOrWaitFor(`div.popover-content div[data-inintest="filter-interaction-types-multiselect inin-checkbox-multiselect-All"]`, this.DEFAULT_TIMEOUT, true) as puppeteer.ElementHandle;
         await interactionTypeSelect.click();
         const socialConversationCheckbox = await this.checkOrWaitFor(`div.popover-content input[data-inintest="inin-checkbox-multiselect-item-checkbox-Social Conversation"]`) as puppeteer.ElementHandle;
         await socialConversationCheckbox.click();
@@ -446,7 +475,7 @@ export default class InteractionConnect extends Base {
         await this.page.bringToFront();
         await this.checkOrWaitFor(`ic-ring-sound-select#ring-sounds-form-social-conversation`);
 
-        return (await (await (await this.page.$('select#ic-ring-sound-select-ring-sounds-form-social-conversation')).getProperty('value')).jsonValue());
+        return (await (await (await this.page.$('ic-ring-sound-select#ring-sounds-form-social-conversation select')).getProperty('value')).jsonValue());
     }
 
     private originalRingSound: string;
@@ -463,7 +492,7 @@ export default class InteractionConnect extends Base {
 
         if (currentRingSound === this.originalRingSound) {
             let newOptionText: string;
-            for (const option of await this.page.$$('select#ic-ring-sound-select-ring-sounds-form-social-conversation option')) {
+            for (const option of await this.page.$$('ic-ring-sound-select#ring-sounds-form-social-conversation select option')) {
                 const optionText = (await (await option.getProperty('value')).jsonValue()) as string;
                 if (optionText !== this.originalRingSound) {
                     newOptionText = optionText;
@@ -471,9 +500,9 @@ export default class InteractionConnect extends Base {
                 }
             }
 
-            await this.page.select('select#ic-ring-sound-select-ring-sounds-form-social-conversation', newOptionText);
+            await this.page.select('ic-ring-sound-select#ring-sounds-form-social-conversation select', newOptionText);
         } else {
-            await this.page.select('select#ic-ring-sound-select-ring-sounds-form-social-conversation', this.originalRingSound);
+            await this.page.select('ic-ring-sound-select#ring-sounds-form-social-conversation select', this.originalRingSound);
         }
 
         currentRingSound = await this.getCurrentSocialConversationRingSound();

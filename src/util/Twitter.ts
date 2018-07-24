@@ -27,7 +27,7 @@ export default class Twitter extends Base {
             await twitterLoginButton.click();
             const closePopupLink: puppeteer.ElementHandle = (await twitterLoginPage.waitFor('body > div > div > div.well > div > div > p:nth-child(3) > a')).asElement() as puppeteer.ElementHandle;
             await closePopupLink.click();
-            twitterLoginPage.close();
+            await twitterLoginPage.close();
         } catch (error) {
             this.logError(`Error launching: ${error}`);
             throw error;
