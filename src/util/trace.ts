@@ -1,9 +1,9 @@
-import * as moment from "moment";
+import * as moment from 'moment';
 
-export function trace(topic: string, trace: string) {
-    console.log(`${moment().toISOString()}: ${topic}: ${trace}`);
+export function trace(topic: string, trace1: string): void {
+    console.log(`${moment().toISOString()}: ${topic}: ${trace1}`);
 }
 
-export function traceError(topic: string, trace: string) {
-    console.error(`${moment().toISOString()}: ${topic}: ${trace}`);
+export function traceError(topic: string, trace1: string): void {
+    console.error(`${moment().toISOString()}: ${topic}: ${trace1}`);
 }
