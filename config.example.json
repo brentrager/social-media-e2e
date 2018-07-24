@@ -32,7 +32,11 @@
     "twitter": {
         "user": "TWITTER ACCOUNT EMAIL WITH BUSINESS PAGE",
         "password": "TWITTER PASSWORD",
-        "socialConversationWorkgroup": "TWITTER SOCIAL CONVERSATION WORKGROUP"
+        "socialConversationWorkgroup": "TWITTER SOCIAL CONVERSATION WORKGROUP",
+        "handle": "TWITTER HANDLE",
+        "user2": "ALTERNATE TWITTER ACCOUNT EMAIL",
+        "password2": "ALTERNATE TWITTER PASSWORD",
+        "pageUrl": "URL TO TWITTER BUSINESS PAGE"
     },
     "tcdb": {
         "baseUrl": "http://tcdb.genesys.com/tcdbv2",
