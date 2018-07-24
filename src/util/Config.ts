@@ -29,12 +29,20 @@ export interface ConfigTcdb {
     email?: string;
 }
 
+export interface ConfigHubless {
+    server: string;
+    facebookChannelId: string;
+    facebookPageId: string;
+    twitterChannelId: string;
+}
+
 export interface Config {
     ic: ConfigIc;
     interactionConnect: ConfigInteractionConnect;
     facebook: ConfigFacebook;
     twitter: ConfigTwitter;
     tcdb?: ConfigTcdb;
+    hubless?: ConfigHubless;
 }
 
 class ConfigReader {

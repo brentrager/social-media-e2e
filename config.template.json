@@ -1,9 +1,9 @@
 {
     "ic": {
         "server": "ICSERVERNAME",
-        "user": "ICUSER",
+        "user": "user1",
         "password": "1234",
-        "workgroup": "ICWORKGROUP"
+        "workgroup": "workgroup1"
     },
     "interactionConnect": {
         "url": "http://webbuild.ininlab.com/webapps/webic/client_systest/latest/client/"
@@ -20,13 +20,13 @@
     },
     "hubless": {
         "server": "HUBLESSSERVERNAME",
-        "facebookChannelId": "some-channel-id",
-        "facebookPageId": "some-number",
-        "twitterChannelId": "some-channel-id"
+        "facebookChannelId": "testChannelFace",
+        "facebookPageId": "7357",
+        "twitterChannelId": "testChannelTwit"
     },
     "tcdb": {
         "baseUrl": "http://tcdb.genesys.com/tcdbv2",
-        "build": "ICSERVERBUILD (e.g. 2018-04-18-CL1953827-84)",
+        "build": "ICSERVERBUILD",
         "email": "your.email@genesys.com"
     }
 }
