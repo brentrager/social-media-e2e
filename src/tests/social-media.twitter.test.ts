@@ -194,5 +194,7 @@ describe('Social Media - Twitter', () => {
         await interactionConnect.disconnectInteractions();
         await interactionConnect.logout();
         await twitter.logout();
+        await interactionConnect.page.close();
+        await twitter.page.close();
     });
 });

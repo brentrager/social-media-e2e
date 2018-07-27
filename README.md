@@ -39,6 +39,8 @@ The parts of the config file are explained below.
 * **password**: Facebook account password
 * **pageUrl**: URL to Facebook Page associated with Facebook account
 * **socialConversationWorkgroup**: Facebook social conversation workgroup
+* **displayName**: Facebook account display name
+* **pageName**: Facebook page name to be used
 
 ### Twitter
 * **user**: Twitter account email

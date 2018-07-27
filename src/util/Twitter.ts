@@ -5,7 +5,7 @@ import { Config } from './Config';
 import Base from './Base';
 
 export default class Twitter extends Base {
-    private page: puppeteer.Page;
+    page: puppeteer.Page;
 
     constructor(private config: Config, private browser: puppeteer.Browser) {
         super();

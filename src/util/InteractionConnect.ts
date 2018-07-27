@@ -6,15 +6,18 @@ import Base from './Base';
 
 export default class InteractionConnect extends Base {
     private DEFAULT_TIMEOUT: number = 2 * 60 * 1000;
-    private page: puppeteer.Page;
+    page: puppeteer.Page;
 
     constructor(private config: Config, private browser: puppeteer.Browser) {
         super();
         this.logTopic = 'Interaction Connect';
     }
 
-    async launch(): Promise<void> {
+    async launch(admin: boolean = false): Promise<void> {
         try {
+            const icUser = admin ? this.config.ic.adminUser : this.config.ic.user;
+            const icPassword = admin ? this.config.ic.adminPassword : this.config.ic.password;
+
             this.log(`Launching Interaction Connect at: ${this.config.interactionConnect.url}`);
 
             // Load the page
@@ -32,9 +35,9 @@ export default class InteractionConnect extends Base {
             const icAuthButton = (await this.page.waitFor('button[data-inintest="ic-logon-auth-type-Interaction Center Authentication"]')).asElement() as puppeteer.ElementHandle;
             await icAuthButton.click();
             const icAuthUsernameInput = (await this.page.waitFor('input#username')).asElement() as puppeteer.ElementHandle;
-            await icAuthUsernameInput.type(this.config.ic.user);
+            await icAuthUsernameInput.type(icUser);
             const icAuthPasswordInput = (await this.page.$('input#password')) as puppeteer.ElementHandle;
-            await icAuthPasswordInput.type(this.config.ic.password);
+            await icAuthPasswordInput.type(icPassword);
             const icAuthSubmitButton = (await this.page.$('button[data-inintest=sts-ic-auth-submit]')) as puppeteer.ElementHandle;
             await icAuthSubmitButton.click();
 
@@ -454,6 +457,25 @@ export default class InteractionConnect extends Base {
         await this.page.waitFor(5000);
     }
 
+    async openSocialMediaConfigTab(): Promise<void> {
+        if (await this.tabIsAvailable('Social Media')) {
+            await this.openTab('Social Media');
+        } else {
+            // Open the Social Media Config View
+            // Click add view icon
+            await this.page.click('button[data-inintest="docking-add-view"] i.glyphicons-plus');
+            await this.checkOrWaitFor('button[data-inintest="add-view-popover-center-show-all"]');
+            await this.page.click('button[data-inintest="add-view-popover-center-show-all"]');
+            // Click Social Media Config View
+            await this.checkOrWaitFor('label[data-inintest="add-view-dialog-item-social-media"]');
+            await this.page.click('label[data-inintest="add-view-dialog-item-social-media"]');
+            // Click Add View
+            await this.page.click('button[data-inintest="add-link"]');
+            await this.waitForTabToOpen('Social Media');
+            await this.openTab('Social Media');
+        }
+    }
+
     private async openSettings(): Promise<puppeteer.ElementHandle> {
         const userMenuButton = await this.checkOrWaitFor(`button[data-inintest="user-menu-dropdown-toggle"]`, this.DEFAULT_TIMEOUT, true) as puppeteer.ElementHandle;
         await userMenuButton.click();
@@ -514,5 +536,233 @@ export default class InteractionConnect extends Base {
         await this.page.waitFor(5000);
 
         return currentRingSound;
+    }
+
+    async openSocialMediaAccordion(title: string): Promise<void> {
+        await this.page.bringToFront();
+        await this.page.$$eval('social-media button[data-inintest="pcor-accordion-button"] span.header-text', (spans, title1) => {
+            for (const span of spans) {
+                if (span.textContent === title1) {
+                    const button = span.parentElement;
+                    if (button.getAttribute('aria-expanded') === 'false') {
+                        (span as HTMLElement).click();
+                    }
+
+                    return;
+                }
+            }
+        }, title);
+    }
+
+    async isSocialMediaAccordionExpanded(title: string): Promise<boolean> {
+        await this.page.bringToFront();
+
+        const expanded = await this.page.$$eval('social-media button[data-inintest="pcor-accordion-button"] span.header-text', (spans, title1) => {
+            for (const span of spans) {
+                if (span.textContent === title1) {
+                    const button = span.parentElement;
+
+                    return button.getAttribute('aria-expanded') !== 'false';
+                }
+            }
+        }, title);
+
+        return expanded;
+    }
+
+    async disableSocialMedia(): Promise<void> {
+        await this.page.bringToFront();
+        const buttonDisabled = await this.page.$eval('button[data-inintest="delete-social-media-processor"]', button => {
+            return button.getAttribute('disabled') === '' ;
+        });
+
+        if (!buttonDisabled) {
+            await this.page.click('button[data-inintest="delete-social-media-processor"]');
+            await this.page.waitFor(2000);
+        }
+    }
+
+    async enableSocialMedia(hub: string, smp1: string, smp2: string, secret: string): Promise<void> {
+        await this.page.bringToFront();
+        await this.page.type('input[data-inintest="social-media-processor-hub-input"]', hub);
+        await this.page.type('input[data-inintest="social-media-processor-1-input"]', smp1);
+        await this.page.type('input[data-inintest="social-media-processor-2-input"]', smp2);
+        await this.page.type('input[data-inintest="social-media-processor-secret-input"]', secret);
+        await this.page.click('button[data-inintest="create-social-media-processor"]');
+        await this.page.waitFor(5000);
+    }
+
+    async disableSocialMediaAccount(): Promise<void> {
+        await this.page.bringToFront();
+        const buttonDisabled = await this.page.$eval('button[data-inintest="delete-social-media-account"]', button => {
+            return button.getAttribute('disabled') === '';
+        });
+
+        if (!buttonDisabled) {
+            await this.page.click('button[data-inintest="delete-social-media-processor"]');
+            await this.page.waitFor(2000);
+        }
+    }
+
+    async enableSocialMediaAccount(email: string, password: string): Promise<void> {
+        await this.page.bringToFront();
+        await this.page.type('input[data-inintest="social-media-account-email-input"]', email);
+        await this.page.type('input[data-inintest="social-media-account-password-input"]', password);
+        await this.page.click('button[data-inintest="create-social-media-account"]');
+        await this.page.waitFor(5000);
+    }
+
+    async addFacebookAccount(email: string, password: string): Promise<boolean> {
+        await this.page.bringToFront();
+        const authPagePromise = new Promise(async resolve => {
+            const browser = await this.page.browser();
+            browser.once('targetcreated', async target => {
+                this.log(target.url());
+                resolve(await target.page());
+            });
+        });
+
+        await this.page.click('button[data-inintest="inin-command-button-Add Facebook Account-base"]');
+
+        const authPage = await authPagePromise as puppeteer.Page;
+
+        await authPage.waitForNavigation();
+        await authPage.waitForSelector('input[name="pass"]');
+        await authPage.type('input[name="pass"]', password);
+        if (await authPage.$('div#email_container input')) {
+            await authPage.type('div#email_container input', email);
+        }
+
+        const authPageDestroyedPromise = new Promise(async resolve => {
+            const browser = await this.page.browser();
+            browser.on('targetdestroyed', async target => {
+                if (await target.page() === authPage) {
+                    resolve(true);
+                }
+            });
+        });
+
+        // Need to click twice because of the overlay from the location request.
+        await authPage.click('input[type="submit"]');
+        await authPage.click('input[type="submit"]');
+
+        await this.page.waitFor(30000);
+
+        return await authPageDestroyedPromise as boolean;
+    }
+
+    async selectFacebookAccount(displayName: string): Promise<void> {
+        await this.page.bringToFront();
+        await this.page.click('facebook-channel-list form-combobox#accountId div.inin-select2-container');
+        await this.page.waitFor(1000);
+        await this.checkOrWaitFor('div.select2-result-label');
+
+        const divs = await this.page.$$('div.select2-result-label');
+        for (const div of divs) {
+            const textContent = await (await div.asElement().getProperty('textContent')).jsonValue();
+            if (textContent === displayName) {
+                await div.click();
+                break;
+            }
+        }
+
+        await this.page.waitFor(1000);
+    }
+
+    async removeFacebookAccount(displayName: string): Promise<boolean> {
+        await this.page.bringToFront();
+        await this.selectFacebookAccount(displayName);
+        await this.page.click('button[data-inintest="inin-command-button-Remove Facebook Account-base"]');
+        await this.page.waitFor(15000);
+
+        await this.page.click('facebook-channel-list form-combobox#accountId div.inin-select2-container');
+        await this.page.waitFor(1000);
+        await this.checkOrWaitFor('div.select2-result-label');
+
+        const result = await this.page.$$eval('div.select2-result-label', (divs, displayName1) => {
+            for (const div of divs) {
+                if (div.textContent === displayName1) {
+                    return false;
+                }
+            }
+
+            return true;
+        }, displayName);
+
+        // Close accounts drop down.
+        await this.page.click('button[data-inintest="inin-command-button-Remove Facebook Account-base"]');
+
+        return result;
+    }
+
+    async addFacebookChannel(channelName: string, pageName: string, socialConversationWorkgroup: string): Promise<boolean> {
+        await this.page.bringToFront();
+        await this.page.click('facebook-channel-list button[data-inintest="inin-command-button-New-base"]');
+        await this.checkOrWaitFor('facebook-channel-new input[data-inintest="social-media-facebook-channel-name-required-input"]');
+        await this.page.type('facebook-channel-new input[data-inintest="social-media-facebook-channel-name-required-input"]', channelName);
+        await this.page.type('facebook-channel-new div[data-inintest="social-media-facebook-channel-pages-required-container"] inin-combobox input', pageName);
+        await this.page.waitFor(3000);
+
+        let divs = await this.page.$$('div.select2-result-label');
+        for (const div of divs) {
+            const textContent = await (await div.asElement().getProperty('textContent')).jsonValue();
+            if (textContent === pageName) {
+                await div.click();
+                break;
+            }
+        }
+
+        await this.page.type('facebook-channel-new div[data-inintest="social-media-facebook-channel-socialConversationWorkgroup-required-container"] inin-combobox input', socialConversationWorkgroup);
+        await this.page.waitFor(3000);
+
+        divs = await this.page.$$('div.select2-result-label');
+        for (const div of divs) {
+            const textContent = await (await div.asElement().getProperty('textContent')).jsonValue();
+            if (textContent === socialConversationWorkgroup) {
+                await div.click();
+                break;
+            }
+        }
+
+        await this.page.click('facebook-channel-new button[data-inintest="admin-new-container-btn-create"]');
+        await this.page.waitFor(30000);
+
+        const links = await this.page.$$('facebook-channel-list router-link-anchor a');
+        for (const link of links) {
+            const textContent = await (await link.asElement().getProperty('textContent')).jsonValue();
+            if (textContent.trim() === channelName) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    async deleteFacebookChannel(channelName: string): Promise<boolean> {
+        await this.page.bringToFront();
+        let links = await this.page.$$('facebook-channel-list router-link-anchor a');
+        for (const link of links) {
+            const textContent = await (await link.asElement().getProperty('textContent')).jsonValue();
+            if (textContent.trim() === channelName) {
+                await link.click();
+                break;
+            }
+        }
+
+        await this.page.waitFor(1000);
+
+        await this.page.click('facebook-channel-list div[data-inintest="inin-command-button-Delete"]');
+
+        await this.page.waitFor(10000);
+
+        links = await this.page.$$('facebook-channel-list router-link-anchor a');
+        for (const link of links) {
+            const textContent = await (await link.asElement().getProperty('textContent')).jsonValue();
+            if (textContent === channelName) {
+                return false;
+            }
+        }
+
+        return true;
     }
 }
