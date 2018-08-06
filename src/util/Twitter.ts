@@ -5,7 +5,7 @@ import { Config } from './Config';
 import Base from './Base';
 
 export default class Twitter extends Base {
-    private page: puppeteer.Page;
+    page: puppeteer.Page;
 
     constructor(private config: Config, private browser: puppeteer.Browser) {
         super();
@@ -16,18 +16,18 @@ export default class Twitter extends Base {
         try {
             this.log(`Authorizing Twitter`);
             // Load the page
-            let twitterLoginPage = await this.browser.newPage();
+            const twitterLoginPage = await this.browser.newPage();
             await twitterLoginPage.setViewport({ width: 1000, height: 800 });
             await twitterLoginPage.goto(authUrl);
-            let twitterUsernameInput: puppeteer.ElementHandle = <puppeteer.ElementHandle>(await twitterLoginPage.waitFor('#username_or_email')).asElement();
+            const twitterUsernameInput: puppeteer.ElementHandle = (await twitterLoginPage.waitFor('#username_or_email')).asElement() as puppeteer.ElementHandle;
             await twitterUsernameInput.type(this.config.twitter.user);
-            let twitterPasswordInput: puppeteer.ElementHandle = <puppeteer.ElementHandle>(await twitterLoginPage.waitFor('#password')).asElement();
+            const twitterPasswordInput: puppeteer.ElementHandle = (await twitterLoginPage.waitFor('#password')).asElement() as puppeteer.ElementHandle;
             await twitterPasswordInput.type(this.config.twitter.password);
-            let twitterLoginButton: puppeteer.ElementHandle = <puppeteer.ElementHandle>(await twitterLoginPage.waitFor('#allow')).asElement();
+            const twitterLoginButton: puppeteer.ElementHandle = (await twitterLoginPage.waitFor('#allow')).asElement() as puppeteer.ElementHandle;
             await twitterLoginButton.click();
-            let closePopupLink: puppeteer.ElementHandle = <puppeteer.ElementHandle>(await twitterLoginPage.waitFor('body > div > div > div.well > div > div > p:nth-child(3) > a')).asElement();
+            const closePopupLink: puppeteer.ElementHandle = (await twitterLoginPage.waitFor('body > div > div > div.well > div > div > p:nth-child(3) > a')).asElement() as puppeteer.ElementHandle;
             await closePopupLink.click();
-            twitterLoginPage.close();
+            await twitterLoginPage.close();
         } catch (error) {
             this.logError(`Error launching: ${error}`);
             throw error;

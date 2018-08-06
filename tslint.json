@@ -12,16 +12,6 @@
             true,
             "no-public"
         ],
-        "member-ordering": [
-            true,
-            {
-                "order": [
-                    "public-before-private",
-                    "static-before-instance",
-                    "variables-before-functions"
-                ]
-            }
-        ],
         "adjacent-overload-signatures": true,
         "unified-signatures": true,
         "prefer-function-over-method": [
@@ -234,6 +224,7 @@
             "allow-fast-null-checks"
         ],
         "no-empty": false,
-        "no-sparse-arrays": true
+        "no-sparse-arrays": true,
+        "no-floating-promises": true
     }
 }

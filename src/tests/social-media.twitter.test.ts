@@ -108,6 +108,7 @@ describe('Social Media - Twitter', () => {
                 expect(await interactionConnect.verifyPostVisible(post2)).toBeTruthy();
 
                 addStep(`Select the Social - Conversation interaction that was selected the first time.`);
+                await interactionConnect.openMyInteractionsTab();
                 await interactionConnect.clickOnInteraction(pickedUpInteraction1);
                 // Let the current interaction view update.
                 await interactionConnect.waitFor(2000);
@@ -193,5 +194,7 @@ describe('Social Media - Twitter', () => {
         await interactionConnect.disconnectInteractions();
         await interactionConnect.logout();
         await twitter.logout();
+        await interactionConnect.page.close();
+        await twitter.page.close();
     });
 });
