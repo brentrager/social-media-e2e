@@ -237,7 +237,7 @@ export function setupTCDBJasmineReporter(): void {
     const tcdbJasmineReporter = {
         specDone: async (result) => {
             if (global.tcdb && result.status && result.status === 'passed') {
-                global.tcdb.submitTest(result.description);
+                await global.tcdb.submitTest(result.description);
             }
         }
     } as jasmine.CustomReporter;
@@ -284,9 +284,9 @@ export const tcdbTest: TcdbTestFunction = (() => {
         return jestFunction.each([[addStep(testName, jestDescription), testTrace(testName)]])(jestDescription, testFunction, timeoutMs);
     };
     _tcdbTest.skip = function tcdbTestSkip(tcNumber: string, tcVersion: string, tcDescription: string, tcOptions: any, testFunction: any, timeoutMs?: number): Function {
-        return _tcdbTest(tcNumber, tcVersion, tcDescription, tcOptions, testFunction, timeoutMs, test.only);
+        return _tcdbTest(tcNumber, tcVersion, tcDescription, tcOptions, testFunction, timeoutMs, test.skip);
     };
-    _tcdbTest.only = function tcdbTestSkip(tcNumber: string, tcVersion: string, tcDescription: string, tcOptions: any, testFunction: any, timeoutMs?: number): Function {
+    _tcdbTest.only = function tcdbTestOnly(tcNumber: string, tcVersion: string, tcDescription: string, tcOptions: any, testFunction: any, timeoutMs?: number): Function {
         return _tcdbTest(tcNumber, tcVersion, tcDescription, tcOptions, testFunction, timeoutMs, test.only);
     };
 

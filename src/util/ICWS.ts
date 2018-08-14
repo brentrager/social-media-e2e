@@ -1,6 +1,7 @@
+// tslint:disable:no-require-imports
 import Base from './Base';
 import { Config } from './Config';
-import request = require('request');
+import * as request from 'request';
 
 export default class ICWS extends Base {
     private _util = require('../icws/_util');
@@ -19,75 +20,76 @@ export default class ICWS extends Base {
         super();
         this.logTopic = 'ICWS';
         // Set the base url so the library knows how to map its server calls
-        this._util.setBaseUrl('http://' + config.ic.server + ':8018');
+        this._util.setBaseUrl(`http://${config.ic.server}:8018`);
         this.messagingVersion = 0;
         this.eventSource = null;
     }
 
-    private callbacks(icwsOperation: string, resolve: Function, reject: Function): object {
+    // tslint:disable:object-literal-key-quotes
+    static callbacks(icwsOperation: string, resolve: Function, reject: Function): object {
         return {
-            '200': function(xhr: XMLHttpRequest, response: any) {
+            '200': (xhr: XMLHttpRequest, response: any) => {
                 resolve({
                     request: xhr,
-                    response: response
+                    response
                 });
             },
-            '201': function(xhr: XMLHttpRequest, response: any) {
+            '201': (xhr: XMLHttpRequest, response: any) => {
                 resolve({
                     request: xhr,
-                    response: response
+                    response
                 });
             },
-            '204': function(xhr: XMLHttpRequest) {
-                resolve({
-                    request: xhr,
-                    response: {}
-                });
-            },
-            '401': function (xhr: XMLHttpRequest) {
+            '204': (xhr: XMLHttpRequest) => {
                 resolve({
                     request: xhr,
                     response: {}
                 });
             },
-            '403': function (xhr: XMLHttpRequest) {
+            '401': (xhr: XMLHttpRequest) => {
                 resolve({
                     request: xhr,
                     response: {}
                 });
             },
-            '404': function (xhr: XMLHttpRequest) {
+            '403': (xhr: XMLHttpRequest) => {
                 resolve({
                     request: xhr,
                     response: {}
                 });
             },
-            'timeout': function (xhr: XMLHttpRequest) {
+            '404': (xhr: XMLHttpRequest) => {
+                resolve({
+                    request: xhr,
+                    response: {}
+                });
+            },
+            'timeout': (xhr: XMLHttpRequest) => {
                 reject({
                     request: xhr,
-                    error: icwsOperation + ': timeout'
+                    error: `${icwsOperation}: timeout`
                 });
             },
-            'default': function (xhr: XMLHttpRequest) {
+            'default': (xhr: XMLHttpRequest) => {
                 reject({
                     request: xhr,
-                    error: icwsOperation + ': default'
+                    error: `${icwsOperation}: timeout`
                 });
             },
-            'abort': function (xhr: XMLHttpRequest) {
+            'abort': (xhr: XMLHttpRequest) => {
             },
-            'error': function (xhr: XMLHttpRequest) {
+            'error': (xhr: XMLHttpRequest) => {
                 reject({
                     request: xhr,
-                    error: icwsOperation + ': error'
+                    error: `${icwsOperation}: timeout`
                 });
-            }        
-        }
+            }
+        };
     }
 
-    public createConnection(): Promise<any> {
+    createConnection(): Promise<any> {
         // Setup some connection parameters
-        let connectionParams = new this.connection.IcAuthConnectionRequestSettings();        
+        const connectionParams = new this.connection.IcAuthConnectionRequestSettings();
         connectionParams.applicationName = this.config.icws.applicationName;
         connectionParams.ininInternalUseOnly = this.config.icws.hash;
         connectionParams.userID = this.config.ic.user;
@@ -99,21 +101,21 @@ export default class ICWS extends Base {
                 new this.connection.$connection.createConnection.params(
                     {
                         header: {
-                            'Accept-Language': "en-US"
+                            'Accept-Language': 'en-US'
                         },
                         content: connectionParams,
-                        query: { 'include': 'features' },
+                        query: { 'include': 'features' }
                     }
                 ),
-                this.callbacks('createConnection', resolve, reject)
+                ICWS.callbacks('createConnection', resolve, reject)
             );
         });
     }
 
-    public processCreateConnectionResponse(connectionResponse: any) {
+    processCreateConnectionResponse(connectionResponse: any): void {
         if (connectionResponse.features) {
             for (let index = connectionResponse.features.length - 1; index >= 0; index--) {
-                let featureObject = connectionResponse.features[index];                
+                const featureObject = connectionResponse.features[index];
                 if (featureObject.featureId === 'messaging') {
                     this.messagingVersion = featureObject.version;
                     break;
@@ -122,10 +124,10 @@ export default class ICWS extends Base {
         }
     }
 
-    public changeStationConnection(): Promise<any> {
-        let workstationSettings = new this.connection.WorkstationSettings();                    
+    changeStationConnection(): Promise<any> {
+        const workstationSettings = new this.connection.WorkstationSettings();
         workstationSettings.workstation = this.config.ic.station;
-        let stationParams = new this.connection.$station.changeStationConnection.params(
+        const stationParams = new this.connection.$station.changeStationConnection.params(
             {
                 content:  workstationSettings
             }
@@ -134,497 +136,496 @@ export default class ICWS extends Base {
         return new Promise((resolve, reject) => {
             this.connection.$station.changeStationConnection(
                 stationParams,
-                this.callbacks('changeStationConnection', resolve, reject)
+                ICWS.callbacks('changeStationConnection', resolve, reject)
             );
         });
     }
 
-    public startMessageProcessing() {
+    async startMessageProcessing(): Promise<void> {
         // Check to see if the IC Server and the browser supports server-sent events.
         if (this.messagingVersion >= 2 && typeof EventSource !== 'undefined') {
             this.startServerSentEventsMessageProcessing();
         } else {
-            this.startShortPollingMessageProcessing();
+            await this.startShortPollingMessageProcessing();
         }
     }
-    
-    private startServerSentEventsMessageProcessing() {
+
+    private startServerSentEventsMessageProcessing(): void {
         if (!this.eventSource) {
-            let parameters = new this.messaging.$messages.EventSource.params({});            
+            const parameters = new this.messaging.$messages.EventSource.params({});
             this.eventSource = new this.messaging.$messages.EventSource(parameters, { message: this.handleMessage });
         }
-    }   
+    }
 
-    public startShortPollingMessageProcessing() {
+    async startShortPollingMessageProcessing(): Promise<void> {
         // Poll the server of any events that have occurred.
-        let getMessages = new Promise((resolve, reject) => {
+        const getMessages = new Promise((resolve, reject) => {
             this.messaging.$messages.getMessages(
                 new this.messaging.$messages.getMessages.params({}),
-                this.callbacks('getMessages', resolve, reject)
+                ICWS.callbacks('getMessages', resolve, reject)
             );
         });
-        getMessages.then((result: { request: XMLHttpRequest, response: any }) => {
-            if (result.request.status == 200) {
-                for (let index = result.response.length - 1; index >= 0; index--) {
-                    let message = result.response[index];
-                    this.handleMessage(message);
-                };
+        const result: {request: XMLHttpRequest, response: any} = await getMessages as any;
+        if (result.request.status === 200) {
+            for (let index = result.response.length - 1; index >= 0; index--) {
+                const message = result.response[index];
+                this.handleMessage(message);
             }
-        });
+        }
     }
-    
-    private handleMessage(message: any) {
-        if (message.__type == 'urn:inin.com:messaging:message6') {
-            let responseHash = new Array();
-            for (let index = 0; index < message.value.length; index++)
-            {
+
+    // tslint:disable:binary-expression-operand-order
+    private handleMessage(message: any): void {
+        if (message.__type === 'urn:inin.com:messaging:message6') {
+            const responseHash = new Array();
+            for (let index = 0; index < message.value.length; index++) {
                 responseHash[2 * index] = message.value[index];
                 responseHash[2 * index + 1] = this.config.icws.applicationName[index % this.config.icws.applicationName.length];
             }
             request.post(
-                this._util.getBaseUrl() + '/messaging/m',
+                `${this._util.getBaseUrl()}/messaging/m`,
                 { json: { _: responseHash } },
-                function (error, response, body) {}
+                (error, response, body) => {}
             );
         }
     }
 
-    public getSocialMediaConfiguration(): Promise<any> {
-        let socialMediaConfigurationParams = new this.socialMedia.$socialMedia.getSocialMediaConfiguration.params({});
+    getSocialMediaConfiguration(): Promise<any> {
+        const socialMediaConfigurationParams = new this.socialMedia.$socialMedia.getSocialMediaConfiguration.params({});
 
         return new Promise((resolve, reject) => {
             this.socialMedia.$socialMedia.getSocialMediaConfiguration(
                 socialMediaConfigurationParams,
-                this.callbacks('getSocialMediaConfiguration', resolve, reject)
+                ICWS.callbacks('getSocialMediaConfiguration', resolve, reject)
             );
         });
     }
 
-    public authenticateSocialMediaProcessor(): Promise<any> {
-        let socialMediaConfigurationParams = new this.socialMedia.SocialMediaConfigurationRequest();
+    authenticateSocialMediaProcessor(): Promise<any> {
+        const socialMediaConfigurationParams = new this.socialMedia.SocialMediaConfigurationRequest();
         socialMediaConfigurationParams.hub = this.config.socialMedia.hub;
         socialMediaConfigurationParams.socialMediaProcessor = this.config.socialMedia.socialMediaProcessor;
         socialMediaConfigurationParams.socialMediaProcessor2 = this.config.socialMedia.socialMediaProcessor2;
         socialMediaConfigurationParams.socialMediaProcessorSecret = this.config.socialMedia.socialMediaProcessorSecret;
-        let authenticateSocialMediaProcessorParams = new this.socialMedia.$socialMedia.authenticateSocialMediaProcessor.params({
+        const authenticateSocialMediaProcessorParams = new this.socialMedia.$socialMedia.authenticateSocialMediaProcessor.params({
             content: socialMediaConfigurationParams
         });
 
         return new Promise((resolve, reject) => {
             this.socialMedia.$socialMedia.authenticateSocialMediaProcessor(
                 authenticateSocialMediaProcessorParams,
-                this.callbacks('authenticateSocialMediaProcessor', resolve, reject)
+                ICWS.callbacks('authenticateSocialMediaProcessor', resolve, reject)
             );
         });
     }
 
-    public updateSocialMediaConfiguration(): Promise<any> {
-        let socialMediaConfigurationParams = new this.socialMedia.SocialMediaConfigurationRequest();
+    updateSocialMediaConfiguration(): Promise<any> {
+        const socialMediaConfigurationParams = new this.socialMedia.SocialMediaConfigurationRequest();
         socialMediaConfigurationParams.hub = this.config.socialMedia.hub;
         socialMediaConfigurationParams.socialMediaProcessor = this.config.socialMedia.socialMediaProcessor;
         socialMediaConfigurationParams.socialMediaProcessor2 = this.config.socialMedia.socialMediaProcessor2;
         socialMediaConfigurationParams.socialMediaProcessorSecret = this.config.socialMedia.socialMediaProcessorSecret;
-        let updateSocialMediaConfigurationParams = new this.socialMedia.$socialMedia.updateSocialMediaConfiguration.params({
+        const updateSocialMediaConfigurationParams = new this.socialMedia.$socialMedia.updateSocialMediaConfiguration.params({
             content: socialMediaConfigurationParams
         });
 
         return new Promise((resolve, reject) => {
             this.socialMedia.$socialMedia.updateSocialMediaConfiguration(
                 updateSocialMediaConfigurationParams,
-                this.callbacks('authenticateSocialMediaProcessor', resolve, reject)
+                ICWS.callbacks('authenticateSocialMediaProcessor', resolve, reject)
             );
         });
     }
 
-    public deleteSocialMediaConfiguration(): Promise<any> {
-        let socialMediaConfigurationParams = new this.socialMedia.$socialMedia.deleteSocialMediaConfiguration.params({});
+    deleteSocialMediaConfiguration(): Promise<any> {
+        const socialMediaConfigurationParams = new this.socialMedia.$socialMedia.deleteSocialMediaConfiguration.params({});
 
         return new Promise((resolve, reject) => {
             this.socialMedia.$socialMedia.deleteSocialMediaConfiguration(
                 socialMediaConfigurationParams,
-                this.callbacks('getSocialMediaConfiguration', resolve, reject)
+                ICWS.callbacks('getSocialMediaConfiguration', resolve, reject)
             );
         });
     }
 
-    public getGenesysHubAccount(): Promise<any> {
-        let genesysHubAccountParams = new this.socialMedia.$account.getGenesysHubAccount.params({});
+    getGenesysHubAccount(): Promise<any> {
+        const genesysHubAccountParams = new this.socialMedia.$account.getGenesysHubAccount.params({});
 
         return new Promise((resolve, reject) => {
             this.socialMedia.$account.getGenesysHubAccount(
                 genesysHubAccountParams,
-                this.callbacks('getGenesysHubAccount', resolve, reject)
+                ICWS.callbacks('getGenesysHubAccount', resolve, reject)
             );
         });
     }
 
-    public provisionGenesysHubAccount(): Promise<any> {
-        let genesysHubAccountParams = new  this.socialMedia.GenesysHubConfigurationRequest();
+    provisionGenesysHubAccount(): Promise<any> {
+        const genesysHubAccountParams = new  this.socialMedia.GenesysHubConfigurationRequest();
         genesysHubAccountParams.email = this.config.genesysHub.email;
         genesysHubAccountParams.password = this.config.genesysHub.password;
-        let provisionGenesysHubAccountParams = new this.socialMedia.$account.provisionGenesysHubAccount.params({
+        const provisionGenesysHubAccountParams = new this.socialMedia.$account.provisionGenesysHubAccount.params({
             content: genesysHubAccountParams
-        }); 
+        });
 
         return new Promise((resolve, reject) => {
             this.socialMedia.$account.provisionGenesysHubAccount(
                 provisionGenesysHubAccountParams,
-                this.callbacks('provisionGenesysHubAccount', resolve, reject)
+                ICWS.callbacks('provisionGenesysHubAccount', resolve, reject)
             );
         });
     }
 
-    public updateGenesysHubAccount(): Promise<any> {
-        let genesysHubAccountParams = new  this.socialMedia.GenesysHubConfigurationRequest();
+    updateGenesysHubAccount(): Promise<any> {
+        const genesysHubAccountParams = new  this.socialMedia.GenesysHubConfigurationRequest();
         genesysHubAccountParams.email = this.config.genesysHub.email;
         genesysHubAccountParams.password = this.config.genesysHub.password;
-        let updateGenesysHubAccountParams = new this.socialMedia.$account.updateGenesysHubAccount.params({
+        const updateGenesysHubAccountParams = new this.socialMedia.$account.updateGenesysHubAccount.params({
             content: genesysHubAccountParams
-        }); 
+        });
 
         return new Promise((resolve, reject) => {
             this.socialMedia.$account.updateGenesysHubAccount(
                 updateGenesysHubAccountParams,
-                this.callbacks('updateGenesysHubAccount', resolve, reject)
+                ICWS.callbacks('updateGenesysHubAccount', resolve, reject)
             );
         });
     }
 
-    public deleteGenesysHubAccount(): Promise<any> {
-        let genesysHubAccountParams = new this.socialMedia.$account.deleteGenesysHubAccount.params({});
+    deleteGenesysHubAccount(): Promise<any> {
+        const genesysHubAccountParams = new this.socialMedia.$account.deleteGenesysHubAccount.params({});
 
         return new Promise((resolve, reject) => {
             this.socialMedia.$account.deleteGenesysHubAccount(
                 genesysHubAccountParams,
-                this.callbacks('deleteGenesysHubAccount', resolve, reject)
+                ICWS.callbacks('deleteGenesysHubAccount', resolve, reject)
             );
         });
     }
 
-    public authorizeFacebookAccount(): Promise<any> {
-        let facebookAccountParams = new  this.socialMedia.FacebookAccountRequest();
-        let authorizeFacebookAccountParams = new this.socialMediaFacebook.$account.authorizeFacebookAccount.params({
+    authorizeFacebookAccount(): Promise<any> {
+        const facebookAccountParams = new  this.socialMedia.FacebookAccountRequest();
+        const authorizeFacebookAccountParams = new this.socialMediaFacebook.$account.authorizeFacebookAccount.params({
             content: facebookAccountParams
-        }); 
+        });
 
         return new Promise((resolve, reject) => {
             this.socialMediaFacebook.$account.authorizeFacebookAccount(
                 authorizeFacebookAccountParams,
-                this.callbacks('authorizeFacebookAccount', resolve, reject)
+                ICWS.callbacks('authorizeFacebookAccount', resolve, reject)
             );
         });
     }
 
-    public getFacebookAccount(accountId: string): Promise<any> {
-        let getFacebookAccountParams = new this.socialMediaFacebook.$account.getFacebookAccount.params({
+    getFacebookAccount(accountId: string): Promise<any> {
+        const getFacebookAccountParams = new this.socialMediaFacebook.$account.getFacebookAccount.params({
             template: {
-                accountId: accountId
+                accountId
             }
         });
 
         return new Promise((resolve, reject) => {
             this.socialMediaFacebook.$account.getFacebookAccount(
                 getFacebookAccountParams,
-                this.callbacks('getFacebookAccount', resolve, reject)
+                ICWS.callbacks('getFacebookAccount', resolve, reject)
             );
         });
     }
 
-    public updateFacebookAccount(accountId: string): Promise<any> {
-        let facebookAccountParams = new  this.socialMedia.FacebookAccountRequest();
-        let updateFacebookAccountParams = new this.socialMediaFacebook.$account.updateFacebookAccount.params({
+    updateFacebookAccount(accountId: string): Promise<any> {
+        const facebookAccountParams = new  this.socialMedia.FacebookAccountRequest();
+        const updateFacebookAccountParams = new this.socialMediaFacebook.$account.updateFacebookAccount.params({
             template: {
-                accountId: accountId
+                accountId
             },
             content: facebookAccountParams
-        }); 
+        });
 
         return new Promise((resolve, reject) => {
             this.socialMediaFacebook.$account.updateFacebookAccount(
                 updateFacebookAccountParams,
-                this.callbacks('updateFacebookAccount', resolve, reject)
+                ICWS.callbacks('updateFacebookAccount', resolve, reject)
             );
         });
     }
 
-    public deleteFacebookAccount(accountId: string): Promise<any> {
-        let deleteFacebookAccountParams = new this.socialMediaFacebook.$account.deleteFacebookAccount.params({
+    deleteFacebookAccount(accountId: string): Promise<any> {
+        const deleteFacebookAccountParams = new this.socialMediaFacebook.$account.deleteFacebookAccount.params({
             template: {
-                accountId: accountId
+                accountId
             }
         });
 
         return new Promise((resolve, reject) => {
             this.socialMediaFacebook.$account.deleteFacebookAccount(
                 deleteFacebookAccountParams,
-                this.callbacks('deleteFacebookAccount', resolve, reject)
+                ICWS.callbacks('deleteFacebookAccount', resolve, reject)
             );
         });
     }
 
-    public getFacebookAccounts(): Promise<any> {
-        let getFacebookAccountsParams = new this.socialMediaFacebook.$accounts.getFacebookAccounts.params({});
+    getFacebookAccounts(): Promise<any> {
+        const getFacebookAccountsParams = new this.socialMediaFacebook.$accounts.getFacebookAccounts.params({});
 
         return new Promise((resolve, reject) => {
             this.socialMediaFacebook.$accounts.getFacebookAccounts(
                 getFacebookAccountsParams,
-                this.callbacks('getFacebookAccounts', resolve, reject)
+                ICWS.callbacks('getFacebookAccounts', resolve, reject)
             );
         });
     }
 
-    public createFacebookChannel(accountId: string, channelName: string, pageId: string, pageName: string): Promise<any> {
-        let facebookChannelParams = new  this.socialMedia.FacebookChannelRequest();
+    createFacebookChannel(accountId: string, channelName: string, pageId: string, pageName: string): Promise<any> {
+        const facebookChannelParams = new  this.socialMedia.FacebookChannelRequest();
         facebookChannelParams.name = channelName;
-        let facebookPage = new this.socialMedia.Page();
+        const facebookPage = new this.socialMedia.Page();
         facebookPage.id = pageId;
         facebookPage.name = pageName;
         facebookChannelParams.pages = [facebookPage];
         facebookChannelParams.socialConversationWorkgroup = this.config.facebook.socialConversationWorkgroup;
-        let createFacebookChannelParams = new this.socialMediaFacebookAccount.$channel.createFacebookChannel.params({
+        const createFacebookChannelParams = new this.socialMediaFacebookAccount.$channel.createFacebookChannel.params({
             template: {
-                accountId: accountId
+                accountId
             },
             content: facebookChannelParams
-        }); 
+        });
 
         return new Promise((resolve, reject) => {
             this.socialMediaFacebookAccount.$channel.createFacebookChannel(
                 createFacebookChannelParams,
-                this.callbacks('createFacebookChannel', resolve, reject)
+                ICWS.callbacks('createFacebookChannel', resolve, reject)
             );
         });
     }
 
-    public getFacebookChannel(accountId: string, channelId: string): Promise<any> {
-        let getFacebookChannelParams = new this.socialMediaFacebookAccount.$channel.getFacebookChannel.params({
+    getFacebookChannel(accountId: string, channelId: string): Promise<any> {
+        const getFacebookChannelParams = new this.socialMediaFacebookAccount.$channel.getFacebookChannel.params({
             template: {
-                accountId: accountId,
-                channelId: channelId
+                accountId,
+                channelId
             }
         });
 
         return new Promise((resolve, reject) => {
             this.socialMediaFacebookAccount.$channel.getFacebookChannel(
                 getFacebookChannelParams,
-                this.callbacks('getFacebookChannel', resolve, reject)
+                ICWS.callbacks('getFacebookChannel', resolve, reject)
             );
         });
     }
 
-    public updateFacebookChannel(accountId: string, channelId: string, channelName: string, pageId: string, pageName: string): Promise<any> {
-        let facebookChannelParams = new  this.socialMedia.FacebookChannelRequest();
+    updateFacebookChannel(accountId: string, channelId: string, channelName: string, pageId: string, pageName: string): Promise<any> {
+        const facebookChannelParams = new  this.socialMedia.FacebookChannelRequest();
         facebookChannelParams.name = channelName;
-        let facebookPage = new this.socialMedia.Page();
+        const facebookPage = new this.socialMedia.Page();
         facebookPage.id = pageId;
         facebookPage.name = pageName;
         facebookChannelParams.pages = [facebookPage];
         facebookChannelParams.socialConversationWorkgroup = this.config.facebook.socialConversationWorkgroup;
-        let updateFacebookChannelParams = new this.socialMediaFacebookAccount.$channel.updateFacebookChannel.params({
+        const updateFacebookChannelParams = new this.socialMediaFacebookAccount.$channel.updateFacebookChannel.params({
             template: {
-                accountId: accountId,
-                channelId: channelId
+                accountId,
+                channelId
             },
             content: facebookChannelParams
-        }); 
+        });
 
         return new Promise((resolve, reject) => {
             this.socialMediaFacebookAccount.$channel.updateFacebookChannel(
                 updateFacebookChannelParams,
-                this.callbacks('updateFacebookChannel', resolve, reject)
+                ICWS.callbacks('updateFacebookChannel', resolve, reject)
             );
         });
     }
 
-    public deleteFacebookChannel(accountId: string, channelId: string): Promise<any> {
-        let deleteFacebookChannelParams = new this.socialMediaFacebookAccount.$channel.deleteFacebookChannel.params({
+    deleteFacebookChannel(accountId: string, channelId: string): Promise<any> {
+        const deleteFacebookChannelParams = new this.socialMediaFacebookAccount.$channel.deleteFacebookChannel.params({
             template: {
-                accountId: accountId,
-                channelId: channelId
+                accountId,
+                channelId
             }
         });
 
         return new Promise((resolve, reject) => {
             this.socialMediaFacebookAccount.$channel.deleteFacebookChannel(
                 deleteFacebookChannelParams,
-                this.callbacks('deleteFacebookChannel', resolve, reject)
+                ICWS.callbacks('deleteFacebookChannel', resolve, reject)
             );
         });
     }
 
-    public getFacebookChannels(accountId: string): Promise<any> {
-        let getFacebookChannelsParams = new this.socialMediaFacebookAccount.$channels.getFacebookChannels.params({
+    getFacebookChannels(accountId: string): Promise<any> {
+        const getFacebookChannelsParams = new this.socialMediaFacebookAccount.$channels.getFacebookChannels.params({
             template: {
-                accountId: accountId
+                accountId
             }
         });
 
         return new Promise((resolve, reject) => {
             this.socialMediaFacebookAccount.$channels.getFacebookChannels(
                 getFacebookChannelsParams,
-                this.callbacks('getFacebookChannels', resolve, reject)
+                ICWS.callbacks('getFacebookChannels', resolve, reject)
             );
         });
     }
 
-    public authorizeTwitterAccount(): Promise<any> {
-        let twitterAccountParams = new  this.socialMedia.TwitterAccountRequest();
-        let authorizeTwitterAccountParams = new this.socialMediaTwitter.$account.authorizeTwitterAccount.params({
+    authorizeTwitterAccount(): Promise<any> {
+        const twitterAccountParams = new  this.socialMedia.TwitterAccountRequest();
+        const authorizeTwitterAccountParams = new this.socialMediaTwitter.$account.authorizeTwitterAccount.params({
             content: twitterAccountParams
-        }); 
+        });
 
         return new Promise((resolve, reject) => {
             this.socialMediaTwitter.$account.authorizeTwitterAccount(
                 authorizeTwitterAccountParams,
-                this.callbacks('authorizeTwitterAccount', resolve, reject)
+                ICWS.callbacks('authorizeTwitterAccount', resolve, reject)
             );
         });
     }
 
-    public getTwitterAccount(accountId: string): Promise<any> {
-        let getTwitterAccountParams = new this.socialMediaTwitter.$account.getTwitterAccount.params({
+    getTwitterAccount(accountId: string): Promise<any> {
+        const getTwitterAccountParams = new this.socialMediaTwitter.$account.getTwitterAccount.params({
             template: {
-                accountId: accountId
+                accountId
             }
         });
 
         return new Promise((resolve, reject) => {
             this.socialMediaTwitter.$account.getTwitterAccount(
                 getTwitterAccountParams,
-                this.callbacks('getTwitterAccount', resolve, reject)
+                ICWS.callbacks('getTwitterAccount', resolve, reject)
             );
         });
     }
 
-    public updateTwitterAccount(accountId: string): Promise<any> {
-        let twitterAccountParams = new  this.socialMedia.TwitterAccountRequest();
-        let updateTwitterAccountParams = new this.socialMediaTwitter.$account.updateTwitterAccount.params({
+    updateTwitterAccount(accountId: string): Promise<any> {
+        const twitterAccountParams = new  this.socialMedia.TwitterAccountRequest();
+        const updateTwitterAccountParams = new this.socialMediaTwitter.$account.updateTwitterAccount.params({
             template: {
-                accountId: accountId
+                accountId
             },
             content: twitterAccountParams
-        }); 
+        });
 
         return new Promise((resolve, reject) => {
             this.socialMediaTwitter.$account.updateTwitterAccount(
                 updateTwitterAccountParams,
-                this.callbacks('updateTwitterAccount', resolve, reject)
+                ICWS.callbacks('updateTwitterAccount', resolve, reject)
             );
         });
     }
 
-    public deleteTwitterAccount(accountId: string): Promise<any> {
-        let deleteTwitterAccountParams = new this.socialMediaTwitter.$account.deleteTwitterAccount.params({
+    deleteTwitterAccount(accountId: string): Promise<any> {
+        const deleteTwitterAccountParams = new this.socialMediaTwitter.$account.deleteTwitterAccount.params({
             template: {
-                accountId: accountId
+                accountId
             }
         });
 
         return new Promise((resolve, reject) => {
             this.socialMediaTwitter.$account.deleteTwitterAccount(
                 deleteTwitterAccountParams,
-                this.callbacks('deleteTwitterAccount', resolve, reject)
+                ICWS.callbacks('deleteTwitterAccount', resolve, reject)
             );
         });
     }
 
-    public getTwitterAccounts(): Promise<any> {
-        let getTwitterAccountsParams = new this.socialMediaTwitter.$accounts.getTwitterAccounts.params({});
+    getTwitterAccounts(): Promise<any> {
+        const getTwitterAccountsParams = new this.socialMediaTwitter.$accounts.getTwitterAccounts.params({});
 
         return new Promise((resolve, reject) => {
             this.socialMediaTwitter.$accounts.getTwitterAccounts(
                 getTwitterAccountsParams,
-                this.callbacks('getTwitterAccounts', resolve, reject)
+                ICWS.callbacks('getTwitterAccounts', resolve, reject)
             );
         });
     }
 
-    public createTwitterChannel(accountId: string, channelName: string, keywords: string[], handles: string[]): Promise<any> {
-        let twitterChannelParams = new  this.socialMedia.TwitterChannelRequest();
+    createTwitterChannel(accountId: string, channelName: string, keywords: Array<string>, handles: Array<string>): Promise<any> {
+        const twitterChannelParams = new  this.socialMedia.TwitterChannelRequest();
         twitterChannelParams.name = channelName;
         twitterChannelParams.keywords = keywords;
         twitterChannelParams.handles = handles;
         twitterChannelParams.socialConversationWorkgroup = this.config.twitter.socialConversationWorkgroup;
-        let createTwitterChannelParams = new this.socialMediaTwitterAccount.$channel.createTwitterChannel.params({
+        const createTwitterChannelParams = new this.socialMediaTwitterAccount.$channel.createTwitterChannel.params({
             template: {
-                accountId: accountId
+                accountId
             },
             content: twitterChannelParams
-        }); 
+        });
 
         return new Promise((resolve, reject) => {
             this.socialMediaTwitterAccount.$channel.createTwitterChannel(
                 createTwitterChannelParams,
-                this.callbacks('createTwitterChannel', resolve, reject)
+                ICWS.callbacks('createTwitterChannel', resolve, reject)
             );
         });
     }
 
-    public getTwitterChannel(accountId: string, channelId: string): Promise<any> {
-        let getTwitterChannelParams = new this.socialMediaTwitterAccount.$channel.getTwitterChannel.params({
+    getTwitterChannel(accountId: string, channelId: string): Promise<any> {
+        const getTwitterChannelParams = new this.socialMediaTwitterAccount.$channel.getTwitterChannel.params({
             template: {
-                accountId: accountId,
-                channelId: channelId
+                accountId,
+                channelId
             }
         });
 
         return new Promise((resolve, reject) => {
             this.socialMediaTwitterAccount.$channel.getTwitterChannel(
                 getTwitterChannelParams,
-                this.callbacks('getTwitterChannel', resolve, reject)
+                ICWS.callbacks('getTwitterChannel', resolve, reject)
             );
         });
     }
 
-    public updateTwitterChannel(accountId: string, channelId: string, channelName: string, keywords: string[], handles: string[]): Promise<any> {
-        let twitterChannelParams = new  this.socialMedia.TwitterChannelRequest();
+    updateTwitterChannel(accountId: string, channelId: string, channelName: string, keywords: Array<string>, handles: Array<string>): Promise<any> {
+        const twitterChannelParams = new  this.socialMedia.TwitterChannelRequest();
         twitterChannelParams.name = channelName;
         twitterChannelParams.keywords = keywords;
         twitterChannelParams.handles = handles;
         twitterChannelParams.socialConversationWorkgroup = this.config.twitter.socialConversationWorkgroup;
-        let updateTwitterChannelParams = new this.socialMediaTwitterAccount.$channel.updateTwitterChannel.params({
+        const updateTwitterChannelParams = new this.socialMediaTwitterAccount.$channel.updateTwitterChannel.params({
             template: {
-                accountId: accountId,
-                channelId: channelId
+                accountId,
+                channelId
             },
             content: twitterChannelParams
-        }); 
+        });
 
         return new Promise((resolve, reject) => {
             this.socialMediaTwitterAccount.$channel.updateTwitterChannel(
                 updateTwitterChannelParams,
-                this.callbacks('updateTwitterChannel', resolve, reject)
+                ICWS.callbacks('updateTwitterChannel', resolve, reject)
             );
         });
     }
 
-    public deleteTwitterChannel(accountId: string, channelId: string): Promise<any> {
-        let deleteTwitterChannelParams = new this.socialMediaTwitterAccount.$channel.deleteTwitterChannel.params({
+    deleteTwitterChannel(accountId: string, channelId: string): Promise<any> {
+        const deleteTwitterChannelParams = new this.socialMediaTwitterAccount.$channel.deleteTwitterChannel.params({
             template: {
-                accountId: accountId,
-                channelId: channelId
+                accountId,
+                channelId
             }
         });
 
         return new Promise((resolve, reject) => {
             this.socialMediaTwitterAccount.$channel.deleteTwitterChannel(
                 deleteTwitterChannelParams,
-                this.callbacks('deleteTwitterChannel', resolve, reject)
+                ICWS.callbacks('deleteTwitterChannel', resolve, reject)
             );
         });
     }
 
-    public getTwitterChannels(accountId: string): Promise<any> {
-        let getTwitterChannelsParams = new this.socialMediaTwitterAccount.$channels.getTwitterChannels.params({
+    getTwitterChannels(accountId: string): Promise<any> {
+        const getTwitterChannelsParams = new this.socialMediaTwitterAccount.$channels.getTwitterChannels.params({
             template: {
-                accountId: accountId
+                accountId
             }
         });
 
         return new Promise((resolve, reject) => {
             this.socialMediaTwitterAccount.$channels.getTwitterChannels(
                 getTwitterChannelsParams,
-                this.callbacks('getTwitterChannels', resolve, reject)
+                ICWS.callbacks('getTwitterChannels', resolve, reject)
             );
         });
     }

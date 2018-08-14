@@ -4,7 +4,9 @@
         "user": "OMEGA_user1",
         "password": "1234",
         "station": "station1",
-        "workgroup": "OMEGA_support"
+        "workgroup": "OMEGA_support",
+        "adminUser": "OMEGA_admin",
+        "adminPassword": "1234"
     },
     "interactionConnect": {
         "url": "http://webbuild.ininlab.com/webapps/webic/client_systest/latest/client/"
@@ -27,12 +29,18 @@
         "user": "FACEBOOK ACCOUNT EMAIL WITH BUSINESS PAGE",
         "password": "FACEBOOK PASSWORD",
         "pageUrl": "URL TO FACEBOOK BUSINESS PAGE",
-        "socialConversationWorkgroup": "FACEBOOK SOCIAL CONVERSATION WORKGROUP"
+        "socialConversationWorkgroup": "FACEBOOK SOCIAL CONVERSATION WORKGROUP",
+        "displayName": "FACEBOOK ACCOUNT DISPLAY NAME",
+        "pageName": "FACEBOOK PAGE NAME"
     },
     "twitter": {
         "user": "TWITTER ACCOUNT EMAIL WITH BUSINESS PAGE",
         "password": "TWITTER PASSWORD",
-        "socialConversationWorkgroup": "TWITTER SOCIAL CONVERSATION WORKGROUP"
+        "socialConversationWorkgroup": "TWITTER SOCIAL CONVERSATION WORKGROUP",
+        "handle": "TWITTER HANDLE",
+        "user2": "ALTERNATE TWITTER ACCOUNT EMAIL",
+        "password2": "ALTERNATE TWITTER PASSWORD",
+        "pageUrl": "URL TO TWITTER BUSINESS PAGE"
     },
     "hubless": {
         "server": "HUBLESSSERVERNAME",

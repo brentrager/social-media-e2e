@@ -39,11 +39,19 @@ The parts of the config file are explained below.
 * **password**: Facebook account password
 * **pageUrl**: URL to Facebook Page associated with Facebook account
 * **socialConversationWorkgroup**: Facebook social conversation workgroup
+* **displayName**: Facebook account display name
+* **pageName**: Facebook page name to be used
 
 ### Twitter
 * **user**: Twitter account email
 * **password**: Twitter account password
 * **socialConversationWorkgroup**: Twitter social conversation workgroup
+
+### Hubless
+* **server**: Name of hubless server
+* **facebookChannelId**: ID for Facebook channel (in DS)
+* **facebookPageId**: ID for Facebook Page (in DS)
+* **twitterChannelId**: ID for Twitter Channel (in DS)
 
 ### TCDB (optional)
 * **baseUrl**: Base URL for TCDB API

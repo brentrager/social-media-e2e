@@ -6,6 +6,8 @@ export interface ConfigIc {
     password: string;
     station: string;
     workgroup: string;
+    adminUser: string;
+    adminPassword: string;
 }
 
 export interface ConfigInteractionConnect {
@@ -34,6 +36,8 @@ export interface ConfigFacebook {
     password: string;
     pageUrl: string;
     socialConversationWorkgroup: string;
+    displayName: string;
+    pageName: string;
 }
 
 export interface ConfigTwitter {

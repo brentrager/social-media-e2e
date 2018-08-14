@@ -5,7 +5,7 @@ import { Config } from './Config';
 import Base from './Base';
 
 export default class Facebook extends Base {
-    private page: puppeteer.Page;
+    page: puppeteer.Page;
 
     constructor(private config: Config, private browser: puppeteer.Browser) {
         super();
@@ -14,20 +14,20 @@ export default class Facebook extends Base {
 
     async authorize(authUrl: string): Promise<void> {
         try {
-            this.log(`Authorizing Facebook`);
+            this.log('Authorizing Facebook');
             // Load the page
-            let facebookLoginPage = await this.browser.newPage();
+            const facebookLoginPage = await this.browser.newPage();
             await facebookLoginPage.setViewport({ width: 1000, height: 800 });
             await facebookLoginPage.goto(authUrl);
-            let facebookUsernameInput: puppeteer.ElementHandle = <puppeteer.ElementHandle>(await facebookLoginPage.waitFor('#email')).asElement();
+            const facebookUsernameInput: puppeteer.ElementHandle = (await facebookLoginPage.waitFor('#email')).asElement() as puppeteer.ElementHandle;
             await facebookUsernameInput.type(this.config.facebook.user);
-            let facebookPasswordInput: puppeteer.ElementHandle = <puppeteer.ElementHandle>(await facebookLoginPage.waitFor('#pass')).asElement();
+            const facebookPasswordInput: puppeteer.ElementHandle = (await facebookLoginPage.waitFor('#pass')).asElement() as puppeteer.ElementHandle;
             await facebookPasswordInput.type(this.config.facebook.password);
-            let facebookLoginButton: puppeteer.ElementHandle = <puppeteer.ElementHandle>(await facebookLoginPage.waitFor('#loginbutton')).asElement();
+            const facebookLoginButton: puppeteer.ElementHandle = (await facebookLoginPage.waitFor('#loginbutton')).asElement() as puppeteer.ElementHandle;
             await facebookLoginButton.click();
-            let closePopupLink: puppeteer.ElementHandle = <puppeteer.ElementHandle>(await facebookLoginPage.waitFor('body > div > div > div.well > div > div > p:nth-child(3) > a')).asElement();
+            const closePopupLink: puppeteer.ElementHandle = (await facebookLoginPage.waitFor('body > div > div > div.well > div > div > p:nth-child(3) > a')).asElement() as puppeteer.ElementHandle;
             await closePopupLink.click();
-            facebookLoginPage.close();
+            await facebookLoginPage.close();
         } catch (error) {
             this.logError(`Error launching: ${error}`);
             throw error;
