@@ -445,7 +445,10 @@ export default class InteractionConnect extends Base {
     }
 
     public async closeScorecardDetails() {
-        this.page.click('[data-inintest="ic-quality-scorecard-focus-close-button"]')
+        //Some kind of puppeteer bug with clicking musses this up but
+        //direct execution works for some reason
+        await this.page.evaluate(selector => document.querySelector(selector).click(),
+        '[data-inintest="ic-quality-scorecard-focus-close-button"');
         this.log("Closing Scorecard");
     }
 
@@ -456,7 +459,7 @@ export default class InteractionConnect extends Base {
 
     public async adHocRecord(start: boolean) {
         if (await this.canAdHocRecord()) {
-            this.page.click('[data-inintest="inin-command-button-record"]');
+            await this.page.click('[data-inintest="inin-command-button-record"]');
             if (start) {
                 this.log("Started ad hoc recording");
             } else {
@@ -475,7 +478,7 @@ export default class InteractionConnect extends Base {
 
     public async snipRecord(start: boolean) {
         if (await this.canSnipRecord()) {
-            this.page.click('[data-inintest="inin-command-button-recordSnippet"]');
+            await this.page.click('[data-inintest="inin-command-button-recordSnippet"]');
             if (start) {
                 this.log("Started snippet recording");
             } else {

@@ -1,10 +1,10 @@
 {
     "ic": {
         "server": "ICSERVERNAME",
-        "user": "user1",
+        "user": "OMEGA_user1",
         "password": "1234",
         "station": "station1",
-        "workgroup": "workgroup1"
+        "workgroup": "OMEGA_support"
     },
     "interactionConnect": {
         "url": "http://webbuild.ininlab.com/webapps/webic/client_systest/latest/client/"
@@ -36,9 +36,9 @@
     },
     "hubless": {
         "server": "HUBLESSSERVERNAME",
-        "facebookChannelId": "testChannelFace",
-        "facebookPageId": "7357",
-        "twitterChannelId": "testChannelTwit"
+        "facebookChannelId": "5b296c2eb98f4d0023f5458c",
+        "facebookPageId": "1",
+        "twitterChannelId": "5b296c2eb98f4d0023f5458b"
     },
     "tcdb": {
         "baseUrl": "http://tcdb.genesys.com/tcdbv2",
