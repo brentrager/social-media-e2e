@@ -50,12 +50,6 @@ export interface ConfigTwitter {
     pageUrl: string;
 }
 
-export interface ConfigTwitter {
-    user: string;
-    password: string;
-    pageUrl: string;
-}
-
 export interface ConfigTcdb {
     baseUrl: string;
     build: string;
