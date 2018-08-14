@@ -23,6 +23,7 @@ describe('Social Media - Recorder', () => {
         await interactionConnect.disconnectInteractions();
         hubless = new Hubless(config, global.browser);
     });
+
     describe('Facebook Social Conversations Recordings', () => {
         tcdbTest('58309', '0', `Play the Social Media recording on the Scorecard details view`, { attributes: [{ attribute: global.tcdb.ATTRIBUTE_BROWSER_FREE_ENTRY }] },
             async (addStep: Function, trace: Function) => {
@@ -30,8 +31,9 @@ describe('Social Media - Recorder', () => {
                 await hubless.facebookPost();
                 let pickedUpInteraction = await interactionConnect.pickupAlertingInteraction(60 * 1000 * 5);
                 expect(pickedUpInteraction).toBeTruthy();
-                interactionConnect.waitFor(2000);
+                await interactionConnect.waitFor(1000);
                 await interactionConnect.disconnectInteractions();
+                await interactionConnect.waitFor(35000);
                 await interactionConnect.runQualitySearch();
                 addStep("Open a scorecard");
                 await interactionConnect.selectQualityResult(0);
@@ -59,7 +61,7 @@ describe('Social Media - Recorder', () => {
                 await interactionConnect.snipRecord(true);
                 //Check that adhoc is unavailable
                 addStep("Click the Ad-hoc 'Record' button")
-                interactionConnect.waitFor(2000);
+                await interactionConnect.waitFor(1000);
                 let canAdHocRecord = await interactionConnect.canAdHocRecord();
                 expect(canAdHocRecord).toBeFalsy();
                 //Stop Snippet
@@ -68,9 +70,10 @@ describe('Social Media - Recorder', () => {
                 addStep("Click the Ad-hoc 'Record' button to start an adhoc recording"); //Can't be done
                 addStep("Click the Snip button.");
                 await interactionConnect.snipRecord(true);
-                interactionConnect.waitFor(1000);
+                await interactionConnect.waitFor(1000);
                 addStep("Disconnect the call.");
                 await interactionConnect.disconnectInteractions();
+                await interactionConnect.waitFor(35000);
                 await interactionConnect.runQualitySearch();
                 addStep("In IRClient search for recordings and verify the snippet recording is listed");
                 await interactionConnect.selectQualityResult(0);
