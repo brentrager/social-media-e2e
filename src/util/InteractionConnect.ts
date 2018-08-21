@@ -132,8 +132,8 @@ export default class InteractionConnect extends Base {
         await this.page.bringToFront();
         const interactionRow = await this.getInteractionRow(interaction);
         try {
-            this.log(`Clicked interaction ${interaction}`);
             await interactionRow.click();
+            this.log(`Clicked interaction ${interaction}`);
         } catch (error) {
             this.log(`An error occurred trying to click on an interaction ${error}`);
         }
