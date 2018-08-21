@@ -47,6 +47,12 @@ The parts of the config file are explained below.
 * **password**: Twitter account password
 * **socialConversationWorkgroup**: Twitter social conversation workgroup
 
+### Hubless
+* **server**: Name of hubless server
+* **facebookChannelId**: ID for Facebook channel (in DS)
+* **facebookPageId**: ID for Facebook Page (in DS)
+* **twitterChannelId**: ID for Twitter Channel (in DS)
+
 ### TCDB (optional)
 * **baseUrl**: Base URL for TCDB API
 * **build**: Build string for the IC server build under test (e.g. "2018-04-18-CL1953827-84")

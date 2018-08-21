@@ -1,11 +1,11 @@
 {
     "ic": {
         "server": "ICSERVERNAME",
-        "user": "ICUSER",
+        "user": "OMEGA_user1",
         "password": "1234",
-        "station": "STATION",
-        "workgroup": "ICWORKGROUP",
-        "adminUser": "ADMIN USER",
+        "station": "station1",
+        "workgroup": "OMEGA_support",
+        "adminUser": "OMEGA_admin",
         "adminPassword": "1234"
     },
     "interactionConnect": {
@@ -44,13 +44,14 @@
     },
     "hubless": {
         "server": "HUBLESSSERVERNAME",
-        "facebookChannelId": "some-channel-id",
-        "facebookPageId": "some-number",
-        "twitterChannelId": "some-channel-id"
+        "facebookChannelId": "5b296c2eb98f4d0023f5458c",
+        "facebookPageId": "1",
+        "twitterChannelId": "5b296c2eb98f4d0023f5458b"
     },
     "tcdb": {
         "baseUrl": "http://tcdb.genesys.com/tcdbv2",
-        "build": "ICSERVERBUILD (e.g. 2018-04-18-CL1953827-84)",
+        "build": "ICSERVERBUILD",
         "email": "your.email@genesys.com"
     }
+
 }
