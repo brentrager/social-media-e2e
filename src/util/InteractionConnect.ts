@@ -99,7 +99,7 @@ export default class InteractionConnect extends Base {
     async getInteractionRow(interaction: string): Promise<puppeteer.ElementHandle | null> {
         await this.page.bringToFront();
         if (!this.page) { throw new Error('Page is not yet loaded.'); }
-        const results = await this.page.$$(`div.queue-content div[data-inintest*="${interaction}"]`);
+        const results = await this.page.$$(`div.queue-content div[data-inintest="interaction-grid-row-${interaction}"] > *`);
         if (results.length > 0) {
             return results[1];
         } else {
@@ -132,12 +132,17 @@ export default class InteractionConnect extends Base {
     async clickOnInteraction(interaction: string): Promise<void> {
         await this.page.bringToFront();
         const interactionRow = await this.getInteractionRow(interaction);
-        await interactionRow.click();
+        try {
+            this.log(`Clicked interaction ${interaction}`);
+            await interactionRow.click();
+        } catch (error) {
+            this.log(`An error occurred trying to click on an interaction ${error}`);
+        }
     }
 
     private async performActionOnInteraction(interaction: string, action: string): Promise<void> {
         await this.clickOnInteraction(interaction);
-        await this.page.click(`button[data-inintest=inin-command-button-${action}-base]`);
+        await this.page.click(`[data-inintest="inin-command-button-${action}"]`);
         this.log(`Performed '${action}' on interaction ${interaction}`);
     }
 
