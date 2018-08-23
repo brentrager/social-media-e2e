@@ -101,10 +101,54 @@ describe('Social Media - Recorder', () => {
         );
 
     });
+
+    describe('Facebook and Twitter Social Direct Message Recordings', () => {
+        tcdbTest('58742', '1', `Open Social Media Direct Message interaction in Interaction Connect`, { attributes: [{ attribute: global.tcdb.ATTRIBUTE_BROWSER_FREE_ENTRY }] },
+            async (addStep: Function, trace: Function) => {
+                // Make a Facebook message
+                await hubless.facebookDirectMessage();
+                let pickedUpInteraction = await interactionConnect.pickupAlertingInteraction(60 * 1000 * 5);
+                expect(pickedUpInteraction).toBeTruthy();
+                await interactionConnect.waitFor(1000);
+                await interactionConnect.disconnectInteractions();
+                await interactionConnect.waitFor(35000);
+                await interactionConnect.runQualitySearch();
+                addStep("Open a scorecard");
+                await interactionConnect.selectQualityResult(0);
+                addStep("Play the recording");
+                let socialRecording = await interactionConnect.doesElementExist('.ic-recorder-social-direct-message');
+                expect(socialRecording).toBeTruthy();
+                addStep("Close the scorecard");
+                await interactionConnect.closeScorecardDetails();
+                await interactionConnect.openTab('My Interactions');
+            }, 10 * 60 * 1000 // We give a long timeout here in case the interaction takes forever.
+        );
+
+        tcdbTest('59052', '0', `Open Social Media Direct Message interaction in Interaction Connect`, { attributes: [{ attribute: global.tcdb.ATTRIBUTE_BROWSER_FREE_ENTRY }] },
+            async (addStep: Function, trace: Function) => {
+                // Make a Twitter message
+                await hubless.twitterDirectMessage();
+                let pickedUpInteraction = await interactionConnect.pickupAlertingInteraction(60 * 1000 * 5);
+                expect(pickedUpInteraction).toBeTruthy();
+                await interactionConnect.waitFor(1000);
+                await interactionConnect.disconnectInteractions();
+                await interactionConnect.waitFor(35000);
+                await interactionConnect.runQualitySearch();
+                addStep("Open a scorecard");
+                await interactionConnect.selectQualityResult(0);
+                addStep("Play the recording");
+                let socialRecording = await interactionConnect.doesElementExist('.ic-recorder-social-direct-message');
+                expect(socialRecording).toBeTruthy();
+                addStep("Close the scorecard");
+                await interactionConnect.closeScorecardDetails();
+                await interactionConnect.openTab('My Interactions');
+            }, 10 * 60 * 1000 // We give a long timeout here in case the interaction takes forever.
+        );
+    });
     afterAll(async () => {
         await interactionConnect.openTab('My Interactions');
         await interactionConnect.disconnectInteractions();
         await interactionConnect.logout();
     });
-    
+
 });

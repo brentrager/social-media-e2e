@@ -25,6 +25,22 @@ export default class Hubless extends Base {
         request.send(postData);
         return request;
     }
+    public async facebookDirectMessage() {
+        if (this.config.hubless === undefined) {
+            this.log("Hubless is not configured");
+            throw new Error("Hubless is not configured");
+        }
+        let request = new XMLHttpRequest();
+        let url = `http://${this.config.hubless.server}:3000/facebook/message`;
+        request.open("POST", url, false);
+        request.timeout = 2500;
+        request.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+        let postData = `{
+                            "channelId": "${this.config.hubless.facebookChannelId}"
+                        }`;
+        request.send(postData);
+        return request;
+    }
     public async twitterPost() {
         if (this.config.hubless === undefined) {
             this.log("Hubless is not configured");
@@ -36,7 +52,23 @@ export default class Hubless extends Base {
         request.timeout = 2500;
         request.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
         let postData = `{
-                            "channelId": "${this.config.hubless.twitterChannelId}",
+                            "channelId": "${this.config.hubless.twitterChannelId}"
+                        }`;
+        request.send(postData);
+        return request;
+    }
+    public async twitterDirectMessage() {
+        if (this.config.hubless === undefined) {
+            this.log("Hubless is not configured");
+            throw new Error("Hubless is not configured");
+        }
+        let request = new XMLHttpRequest();
+        let url = `http://${this.config.hubless.server}:3000/twitter/message`;
+        request.open("POST", url, false);
+        request.timeout = 2500;
+        request.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+        let postData = `{
+                            "channelId": "${this.config.hubless.twitterChannelId}"
                         }`;
         request.send(postData);
         return request;
