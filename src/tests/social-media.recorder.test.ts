@@ -1,3 +1,4 @@
+/* tslint:disable:quotemark max-line-length */
 import { config } from '../util/Config';
 import InteractionConnect from '../util/InteractionConnect';
 import { setupTCDBJasmineReporter, tcdbTest } from '../util/TCDB';
@@ -21,7 +22,7 @@ describe('Social Media - Recorder', () => {
         await interactionConnect.launch();
         await interactionConnect.openTab('My Interactions');
         await interactionConnect.disconnectInteractions();
-        hubless = new Hubless(config, global.browser);
+        hubless = new Hubless(config);
     });
 
     describe('Facebook Social Conversations Recordings', () => {
@@ -29,7 +30,7 @@ describe('Social Media - Recorder', () => {
             async (addStep: Function, trace: Function) => {
                 // Make a Facebook post
                 await hubless.facebookPost();
-                let pickedUpInteraction = await interactionConnect.pickupAlertingInteraction(60 * 1000 * 5);
+                const pickedUpInteraction = await interactionConnect.pickupAlertingInteraction(60 * 1000 * 5);
                 expect(pickedUpInteraction).toBeTruthy();
                 await interactionConnect.waitFor(1000);
                 await interactionConnect.disconnectInteractions();
@@ -38,7 +39,7 @@ describe('Social Media - Recorder', () => {
                 addStep("Open a scorecard");
                 await interactionConnect.selectQualityResult(0);
                 addStep("Play the recording");
-                let socialRecording = await interactionConnect.doesElementExist('.ic-recorder-social-conversation');
+                const socialRecording = await interactionConnect.doesElementExist('.ic-recorder-social-conversation');
                 expect(socialRecording).toBeTruthy();
                 addStep("Close the scorecard");
                 await interactionConnect.closeScorecardDetails();
@@ -54,20 +55,20 @@ describe('Social Media - Recorder', () => {
                 await hubless.facebookPost();
                 trace('Waiting 5 minutes for Facebook to pass through interaction.');
                 addStep("User1 picks up the social interaction");
-                let pickedUpInteraction = await interactionConnect.pickupAlertingInteraction(60 * 1000 * 5);
+                const pickedUpInteraction = await interactionConnect.pickupAlertingInteraction(60 * 1000 * 5);
                 expect(pickedUpInteraction).toBeTruthy();
-                //Start Snippet
+                // Start Snippet
                 addStep("Click the Snip button.");
                 await interactionConnect.snipRecord(true);
-                //Check that adhoc is unavailable
-                addStep("Click the Ad-hoc 'Record' button")
+                // Check that adhoc is unavailable
+                addStep("Click the Ad-hoc 'Record' button");
                 await interactionConnect.waitFor(1000);
-                let canAdHocRecord = await interactionConnect.canAdHocRecord();
+                const canAdHocRecord = await interactionConnect.canAdHocRecord();
                 expect(canAdHocRecord).toBeFalsy();
-                //Stop Snippet
+                // Stop Snippet
                 addStep("Click the snip button again.");
                 await interactionConnect.snipRecord(false);
-                addStep("Click the Ad-hoc 'Record' button to start an adhoc recording"); //Can't be done
+                addStep("Click the Ad-hoc 'Record' button to start an adhoc recording"); // Can't be done
                 addStep("Click the Snip button.");
                 await interactionConnect.snipRecord(true);
                 await interactionConnect.waitFor(1000);
@@ -78,7 +79,7 @@ describe('Social Media - Recorder', () => {
                 addStep("In IRClient search for recordings and verify the snippet recording is listed");
                 await interactionConnect.selectQualityResult(0);
                 addStep("Verify the snippet recording can be opened");
-                let socialRecording = await interactionConnect.doesElementExist('.ic-recorder-social-conversation');
+                const socialRecording = await interactionConnect.doesElementExist('.ic-recorder-social-conversation');
                 expect(socialRecording).toBeTruthy();
                 await interactionConnect.closeScorecardDetails();
             }, 10 * 60 * 1000 // We give a long timeout here in case the interaction takes forever.
@@ -86,7 +87,7 @@ describe('Social Media - Recorder', () => {
 
         tcdbTest('58311', '0', `Creating a Social Media Snippet Recording and Playback`, { attributes: [{ attribute: global.tcdb.ATTRIBUTE_BROWSER_FREE_ENTRY }] },
             async (addStep: Function, trace: Function) => {
-                //If test 58310 passes this test will pass as well; however, ad-hoc isn't a thing for this so 58310 should be removed and changed to 58311
+                // If test 58310 passes this test will pass as well; however, ad-hoc isn't a thing for this so 58310 should be removed and changed to 58311
                 addStep("Log on to Interaction Connect with a user that can create snippet recordings.");
                 addStep("Initate a social media interaction");
                 addStep("User answers social media interaction");
@@ -96,7 +97,7 @@ describe('Social Media - Recorder', () => {
                 addStep("Right click Private Searches and select New > Recording Search.");
                 addStep("Click New Attribute > Interactions > Media Type.");
                 addStep("Check Socail and click Create Search.");
-                addStep("Double click the snippet recording created earlier.")
+                addStep("Double click the snippet recording created earlier.");
             }, 10 * 60 * 1000 // We give a long timeout here in case the interaction takes forever.
         );
 
@@ -106,5 +107,5 @@ describe('Social Media - Recorder', () => {
         await interactionConnect.disconnectInteractions();
         await interactionConnect.logout();
     });
-    
+
 });

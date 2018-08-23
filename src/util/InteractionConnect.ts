@@ -305,6 +305,7 @@ export default class InteractionConnect extends Base {
     async waitForTabToOpen(tabName: string): Promise<puppeteer.ElementHandle> {
         await this.page.bringToFront();
         // If this selector is available, the tab is available.
+
         return await this.checkOrWaitFor(`span.inin-docking-region-display-name[uib-tooltip="${tabName}"]`);
     }
 
@@ -315,7 +316,7 @@ export default class InteractionConnect extends Base {
         return !!await this.page.$(`span.inin-docking-region-display-name[uib-tooltip="${tabName}"]`);
     }
 
-    public async addNewTab(viewId: string, tabName: string) {
+    async addNewTab(viewId: string, tabName: string): Promise<void> {
         await this.page.bringToFront();
         await this.page.click('.inin-tabset-end-button[data-inintest="docking-add-view"] i.glyphicons-plus');
         await this.checkOrWaitFor('button[data-inintest="add-view-popover-center-show-all"]');
@@ -549,30 +550,34 @@ export default class InteractionConnect extends Base {
         return currentRingSound;
     }
 
-    public async doesElementExist(selector: string) {
+    async doesElementExist(selector: string): Promise<boolean> {
         const element = await this.page.$(selector);
+
         return element !== null;
     }
 
-    public async getGridRow(index: number, gridSelector = "") : Promise<puppeteer.ElementHandle> {
+    async getGridRow(index: number, gridSelector = ""): Promise<puppeteer.ElementHandle> {
         if (gridSelector === "") {
             gridSelector += `.ui-grid-viewport .ui-grid-row`;
         }
-        const gridRows = <Array<puppeteer.ElementHandle>>await this.page.$$(gridSelector);
+        const gridRows = await this.page.$$(gridSelector) as Array<puppeteer.ElementHandle>;
         if (gridRows.length === 0) {
             this.log("Grid was empty returning null");
+
             return null;
         }
         if (gridRows.length > index) {
             this.log(`Found requested index: ${index}`);
+
             return gridRows[index];
         } else {
             this.log("Grid was smaller than requested returning null");
+
             return gridRows[0];
         }
     }
 
-    public async runQualitySearch() {
+    async runQualitySearch(): Promise<void> {
         const tabExists = await this.doesElementExist(`span.inin-docking-region-display-name[uib-tooltip="My Quality Results"]`);
         if (!tabExists) {
             await this.addNewTab("qualityDashboard", "My Quality Results");
@@ -583,34 +588,36 @@ export default class InteractionConnect extends Base {
         await this.page.waitFor(5000);
     }
 
-    public async selectQualityResult(index: number) {
+    async selectQualityResult(index: number): Promise<void> {
         const row = await this.getGridRow(index, '[data-inintest="ic-quality-scorecard-search-results-grid"]');
         if (row === null) {
             this.log("Was unable to click requested row");
+
             return;
         }
         this.log(`Retrieved row: ${index}`);
-        const scorecardButton = <puppeteer.ElementHandle>await row.$('[data-inintest="scorecard-search-results-open-link-data.scorecard.scorecardId"]');
+        const scorecardButton = await row.$('[data-inintest="scorecard-search-results-open-link-data.scorecard.scorecardId"]') as puppeteer.ElementHandle;
         this.log("Found scorecard button for row");
         await scorecardButton.click();
         this.log("Clicked scorecard button");
         await this.page.waitFor(5000);
     }
 
-    public async closeScorecardDetails() {
-        //Some kind of puppeteer bug with clicking musses this up but
-        //direct execution works for some reason
+    async closeScorecardDetails(): Promise<void> {
+        // Some kind of puppeteer bug with clicking musses this up but
+        // direct execution works for some reason
         await this.page.evaluate(selector => document.querySelector(selector).click(),
         '[data-inintest="ic-quality-scorecard-focus-close-button"');
         this.log("Closing Scorecard");
     }
 
-    public async canAdHocRecord() {
+    async canAdHocRecord(): Promise<boolean> {
         const disabledAdHoc = await this.doesElementExist('.disabled[data-inintest="inin-command-button-record"]');
+
         return !disabledAdHoc;
     }
 
-    public async adHocRecord(start: boolean) {
+    async adHocRecord(start: boolean): Promise<void> {
         if (await this.canAdHocRecord()) {
             await this.page.click('[data-inintest="inin-command-button-record"]');
             if (start) {
@@ -624,12 +631,13 @@ export default class InteractionConnect extends Base {
         }
     }
 
-    public async canSnipRecord() {
+    async canSnipRecord(): Promise<boolean> {
         const disabledSnip = await !this.doesElementExist('.disabled[data-inintest="inin-command-button-recordSnippet"]');
+
         return !disabledSnip;
     }
 
-    public async snipRecord(start: boolean) {
+    async snipRecord(start: boolean): Promise<void> {
         if (await this.canSnipRecord()) {
             await this.page.click('[data-inintest="inin-command-button-recordSnippet"]');
             if (start) {
