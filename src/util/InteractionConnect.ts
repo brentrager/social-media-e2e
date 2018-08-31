@@ -1,4 +1,4 @@
-/* tslint:disable:quotemark max-line-length */
+/* tslint:disable:quotemark max-line-length max-file-line-count */
 import * as puppeteer from 'puppeteer';
 import * as moment from 'moment';
 import { Config } from './Config';
@@ -259,6 +259,59 @@ export default class InteractionConnect extends Base {
         return post;
     }
 
+    private async waitForDirectMessage(reply: string, timeout: number = 5 * 60 * 1000): Promise<puppeteer.JSHandle> {
+        const timeoutTime = moment().add(moment.duration(timeout));
+        while (moment() < timeoutTime) {
+            await this.page.waitFor(500);
+
+            for (const message of await this.page.$$('div.message-message')) {
+                const text = await (await message.getProperty('innerHTML')).jsonValue();
+                if (text === reply) {
+                    return message;
+                }
+            }
+        }
+
+        const error = new Error(`Timeout waiting for reply: ${reply}`);
+        this.logError(error);
+        throw error;
+    }
+
+    async waitForDirectMessageImage(timeout: number = 5 * 60 * 1000): Promise<puppeteer.JSHandle> {
+        await this.page.bringToFront();
+        const initialMessages = await this.page.$$('div.message img');
+
+        const timeoutTime = moment().add(moment.duration(timeout));
+        while (moment() < timeoutTime) {
+            await this.page.waitFor(500);
+            const messages = await this.page.$$('div.message img');
+
+            if (messages.length > initialMessages.length) {
+                return messages[messages.length - 1];
+            }
+        }
+
+        const error = new Error(`Timeout waiting for image`);
+        this.logError(error);
+        throw error;
+    }
+
+    async replyDirectMessageAndVerifyReply(reply: string): Promise<puppeteer.JSHandle> {
+        await this.page.bringToFront();
+        await this.openCurrentInteractionTab();
+        const replyTextArea = await this.checkOrWaitFor(`div.direct-message-composition-area textarea`);
+
+        await replyTextArea.type(reply);
+
+        this.log(`Replying to Direct Message : ${reply}`);
+        await this.page.click('div.direct-message-composition-area button');
+
+        const post = await this.waitForDirectMessage(reply);
+        this.log(`Verified reply to direct message: ${reply}`);
+
+        return post;
+    }
+
     async verifyPostVisible(post: string): Promise<boolean> {
         await this.page.bringToFront();
         await this.openCurrentInteractionTab();
@@ -462,14 +515,38 @@ export default class InteractionConnect extends Base {
         await this.page.waitFor(5000);
     }
 
+    async filterUserQueueOnDirectMessages(): Promise<void> {
+        await this.page.bringToFront();
+        const iconFilter = await this.checkOrWaitFor(`div[data-inintest*="ic-interactions-queue-view-User-view"] i.icon-filter`, this.DEFAULT_TIMEOUT, true) as puppeteer.ElementHandle;
+        await iconFilter.click();
+        const interactionTypeSelect = await this.checkOrWaitFor(`div.popover-content div[data-inintest="filter-interaction-types-multiselect inin-checkbox-multiselect-All`, this.DEFAULT_TIMEOUT, true) as puppeteer.ElementHandle;
+        await interactionTypeSelect.click();
+        const socialConversationCheckbox = await this.checkOrWaitFor(`div.popover-content input[data-inintest="inin-checkbox-multiselect-item-checkbox-Social Direct Message"]`) as puppeteer.ElementHandle;
+        await socialConversationCheckbox.click();
+        await iconFilter.click();
+        await this.page.waitFor(5000);
+    }
+
     async filterWorkgroupQueueOnSocialConversations(): Promise<void> {
         await this.page.bringToFront();
         const iconFilter = await this.checkOrWaitFor(`div[data-inintest*="ic-interactions-queue-view-Workgroup-view"] i.icon-filter`, this.DEFAULT_TIMEOUT, true) as puppeteer.ElementHandle;
         await iconFilter.click();
         const interactionTypeSelect = await this.checkOrWaitFor(`div.popover-content div[data-inintest="filter-interaction-types-multiselect inin-checkbox-multiselect-All"]`, this.DEFAULT_TIMEOUT, true) as puppeteer.ElementHandle;
         await interactionTypeSelect.click();
-        const socialConversationCheckbox = await this.checkOrWaitFor(`div.popover-content input[data-inintest="inin-checkbox-multiselect-item-checkbox-Social Conversation"]`) as puppeteer.ElementHandle;
-        await socialConversationCheckbox.click();
+        const directMessageCheckbox = await this.checkOrWaitFor(`div.popover-content input[data-inintest="inin-checkbox-multiselect-item-checkbox-Social Conversation"]`) as puppeteer.ElementHandle;
+        await directMessageCheckbox.click();
+        await iconFilter.click();
+        await this.page.waitFor(5000);
+    }
+
+    async filterWorkgroupQueueOnDirectMessages(): Promise<void> {
+        await this.page.bringToFront();
+        const iconFilter = await this.checkOrWaitFor(`div[data-inintest*="ic-interactions-queue-view-Workgroup-view"] i.icon-filter`, this.DEFAULT_TIMEOUT, true) as puppeteer.ElementHandle;
+        await iconFilter.click();
+        const interactionTypeSelect = await this.checkOrWaitFor(`div.popover-content div[data-inintest="filter-interaction-types-multiselect inin-checkbox-multiselect-All"]`, this.DEFAULT_TIMEOUT, true) as puppeteer.ElementHandle;
+        await interactionTypeSelect.click();
+        const directMessageCheckbox = await this.checkOrWaitFor(`div.popover-content input[data-inintest="inin-checkbox-multiselect-item-checkbox-Social Direct Message"]`) as puppeteer.ElementHandle;
+        await directMessageCheckbox.click();
         await iconFilter.click();
         await this.page.waitFor(5000);
     }
@@ -517,6 +594,13 @@ export default class InteractionConnect extends Base {
         return (await (await (await this.page.$('ic-ring-sound-select#ring-sounds-form-social-conversation select')).getProperty('value')).jsonValue());
     }
 
+    async getCurrentDirectMessageRingSound(): Promise<string> {
+        await this.page.bringToFront();
+        await this.checkOrWaitFor(`ic-ring-sound-select#ring-sounds-form-direct-message`);
+
+        return (await (await (await this.page.$('ic-ring-sound-select#ring-sounds-form-direct-message select')).getProperty('value')).jsonValue());
+    }
+
     private originalRingSound: string;
 
     async toggleSocialConversationRingSound(): Promise<string> {
@@ -546,6 +630,42 @@ export default class InteractionConnect extends Base {
 
         currentRingSound = await this.getCurrentSocialConversationRingSound();
         this.log(`Selected Social Conversation Ring Sound: ${currentRingSound}`);
+
+        await this.page.click('button[data-inintest="configuration-dialog-okay"]');
+
+        // Let the modal close.
+        await this.page.waitFor(5000);
+
+        return currentRingSound;
+    }
+
+    async toggleDirectMessageRingSound(): Promise<string> {
+        // Changes between the original setting and another setting
+        await this.page.bringToFront();
+        if (!this.originalRingSound) {
+            this.originalRingSound = await this.getCurrentDirectMessageRingSound();
+            this.log(`Original ring sound set to "${this.originalRingSound}"`);
+        }
+
+        let currentRingSound = await this.getCurrentDirectMessageRingSound();
+
+        if (currentRingSound === this.originalRingSound) {
+            let newOptionText: string;
+            for (const option of await this.page.$$('ic-ring-sound-select#ring-sounds-form-direct-message select option')) {
+                const optionText = (await (await option.getProperty('value')).jsonValue()) as string;
+                if (optionText !== this.originalRingSound) {
+                    newOptionText = optionText;
+                    break;
+                }
+            }
+
+            await this.page.select('ic-ring-sound-select#ring-sounds-form-direct-message select', newOptionText);
+        } else {
+            await this.page.select('ic-ring-sound-select#ring-sounds-form-direct-message select', this.originalRingSound);
+        }
+
+        currentRingSound = await this.getCurrentDirectMessageRingSound();
+        this.log(`Selected Direct Message Ring Sound: ${currentRingSound}`);
 
         await this.page.click('button[data-inintest="configuration-dialog-okay"]');
 

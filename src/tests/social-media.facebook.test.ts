@@ -4,12 +4,13 @@ import InteractionConnect from '../util/InteractionConnect';
 import Facebook from '../util/Facebook';
 import { setupTCDBJasmineReporter, tcdbTest } from '../util/TCDB';
 import * as randomWords from 'random-words';
-import * as puppeteer from 'puppeteer';
 import * as failFast from 'jasmine-fail-fast';
+import Twitter from '../util/Twitter';
 global.jasmine.getEnv().addReporter(failFast.init()); // Stop test after first failure.
 
 let interactionConnect: InteractionConnect;
 let facebook: Facebook;
+let twitter: Twitter;
 
 jest.setTimeout(5 * 60 * 1000); // Big timeout for long running Puppeteer Actions
 
@@ -18,7 +19,8 @@ beforeAll(async () => {
 });
 
 describe('Social Media - Facebook', () => {
-    describe('Facebook Social Conversations', () => {
+    /*
+    describe.skip('Facebook Social Config', () => {
         beforeAll(async () => {
             // Launch Interaction Connect
             interactionConnect = new InteractionConnect(config, global.browser);
@@ -105,183 +107,303 @@ describe('Social Media - Facebook', () => {
                 // TODO: Make sure no interaction alerts expect(await interactionConnect.pickupAlertingInteraction(60 * 1000 * 1)).toThrow();
             }
         );
+
+        afterAll(async () => {
+            await interactionConnect.openSocialMediaConfigTab();
+            await interactionConnect.removeFacebookAccount(config.facebook.displayName);
+            await interactionConnect.logout();
+            await interactionConnect.page.close();
+            await facebook.page.close();
+        });
     });
 
-    afterAll(async () => {
-        await interactionConnect.openSocialMediaConfigTab();
-        await interactionConnect.removeFacebookAccount(config.facebook.displayName);
-        await interactionConnect.logout();
-        await interactionConnect.page.close();
-        await facebook.page.close();
-    });
-});
-
-describe('Social Media - Facebook', () => {
-    describe('Facebook Social Conversations', () => {
+    */
+    describe.only('Social Media Facebook Interactions', async () => {
         beforeAll(async () => {
             // Launch Interaction Connect
             interactionConnect = new InteractionConnect(config, global.browser);
             await interactionConnect.launch();
             await interactionConnect.openTab('My Interactions');
             await interactionConnect.disconnectInteractions();
-            await interactionConnect.openSocialMediaConfigTab();
-            await interactionConnect.addFacebookAccount(config.facebook.user, config.facebook.password);
-            await interactionConnect.addFacebookChannel(randomWords(2).join(' '), config.facebook.pageName, config.facebook.socialConversationWorkgroup);
+            // await interactionConnect.openSocialMediaConfigTab();
+            // await interactionConnect.addFacebookAccount(config.facebook.user, config.facebook.password);
+            // await interactionConnect.addFacebookChannel(randomWords(2).join(' '), config.facebook.pageName, config.facebook.socialConversationWorkgroup);
 
             // Launch Facebook
             facebook = new Facebook(config, global.browser);
             await facebook.launch();
         });
 
-        let pickedUpInteraction: string;
-        tcdbTest('57556', '2', `Pickup a Social - Conversation Interaction`, { attributes: [{ attribute: global.tcdb.ATTRIBUTE_SOCIAL_CONVERSATION_INTERACTION_TYPE, value: 'Facebook' }] },
-            async (addStep: Function, trace: Function) => {
-                addStep(`Place a Social - Conversation interaction into TestWorkgroup's queue.`);
-                // Make a Facebook post
-                await facebook.postRandom();
+        /*
+        describe.skip('Facebook Social Conversations', () => {
+            let pickedUpInteraction: string;
+            tcdbTest.only('57557', '3', `Pickup a Social - Direct Message Interaction`, {},
+                async (addStep: Function, trace: Function) => {
+                    addStep(`Place a Social - Direct Message interaction into TestWorkgroup's queue.`);
+                    // Make a Facebook post
+                    await facebook.postRandom();
 
-                addStep(`Pickup the alerting Social - Conversation interaction.`);
-                trace('Waiting 5 minutes for Facebook to pass through interaction.');
-                pickedUpInteraction = await interactionConnect.pickupAlertingInteraction(60 * 1000 * 5);
-                expect(pickedUpInteraction).toBeTruthy();
-            }, 10 * 60 * 1000 // We give a long timeout here in case the interaction takes forever.
-        );
+                    addStep(`Pickup the alerting Social - Direct Message interaction.`);
+                    trace('Waiting 5 minutes for Facebook to pass through interaction.');
+                    pickedUpInteraction = await interactionConnect.pickupAlertingInteraction(60 * 1000 * 5);
+                    expect(pickedUpInteraction).toBeTruthy();
+                }, 10 * 60 * 1000 // We give a long timeout here in case the interaction takes forever.
+            );
 
-        let comment: puppeteer.ElementHandle;
-        tcdbTest('57562', '2', `Responding to a Social - Conversation interaction via the post text box.`, { attributes: [{ attribute: global.tcdb.ATTRIBUTE_SOCIAL_CONVERSATION_INTERACTION_TYPE, value: 'Facebook' }] },
-            async (addStep: Function, trace: Function) => {
-                addStep(`Using TestAgent's web client, in the 'Current Interaction' view, type out the text of choice in the post text box, and press the send button.`);
-                comment = (await interactionConnect.replyToRootPostAndVerifyReply(randomWords(10).join(' '))).asElement();
-                expect(comment).toBeTruthy();
-            }, 10 * 60 * 1000 // We give a long timeout here in case the interaction takes forever.
-        );
+            let comment: puppeteer.ElementHandle;
+            tcdbTest('57562', '2', `Responding to a Social - Conversation interaction via the post text box.`, { attributes: [{ attribute: global.tcdb.ATTRIBUTE_SOCIAL_CONVERSATION_INTERACTION_TYPE, value: 'Facebook' }] },
+                async (addStep: Function, trace: Function) => {
+                    addStep(`Using TestAgent's web client, in the 'Current Interaction' view, type out the text of choice in the post text box, and press the send button.`);
+                    comment = (await interactionConnect.replyToRootPostAndVerifyReply(randomWords(10).join(' '))).asElement();
+                    expect(comment).toBeTruthy();
+                }, 10 * 60 * 1000 // We give a long timeout here in case the interaction takes forever.
+            );
 
-        tcdbTest('57563', '0', `Responding to a Social - Conversation interaction via the comment icon in the Current Interaction View.`, { attributes: [{ attribute: global.tcdb.ATTRIBUTE_SOCIAL_CONVERSATION_INTERACTION_TYPE, value: 'Facebook' }] },
-            async (addStep: Function, trace: Function) => {
-                addStep(`Using TestAgent's web client, in the 'Current Interaction' view, select the comment icon underneath the post that is to be commented on.`);
-                addStep(`Type out the text of choice in the post text box, and press the send button..`);
-                const commentReply = await interactionConnect.replyToCommentAndVerifyReply(comment, randomWords(10).join(' '));
-                expect(commentReply).toBeTruthy();
-            }, 10 * 60 * 1000 // We give a long timeout here in case the interaction takes forever.
-        );
+            tcdbTest('57563', '0', `Responding to a Social - Conversation interaction via the comment icon in the Current Interaction View.`, { attributes: [{ attribute: global.tcdb.ATTRIBUTE_SOCIAL_CONVERSATION_INTERACTION_TYPE, value: 'Facebook' }] },
+                async (addStep: Function, trace: Function) => {
+                    addStep(`Using TestAgent's web client, in the 'Current Interaction' view, select the comment icon underneath the post that is to be commented on.`);
+                    addStep(`Type out the text of choice in the post text box, and press the send button..`);
+                    const commentReply = await interactionConnect.replyToCommentAndVerifyReply(comment, randomWords(10).join(' '));
+                    expect(commentReply).toBeTruthy();
+                }, 10 * 60 * 1000 // We give a long timeout here in case the interaction takes forever.
+            );
 
-        tcdbTest('57645', '0', `Place a Social - Conversation Interaction On Hold`, { attributes: [{ attribute: global.tcdb.ATTRIBUTE_SOCIAL_CONVERSATION_INTERACTION_TYPE, value: 'Facebook' }] },
-            async (addStep: Function, trace: Function) => {
-                addStep(`Using TestAgent's web client, select the Social - Conversation interaction and click the hold button.`);
-                expect(await interactionConnect.holdInteraction(pickedUpInteraction)).toBeTruthy();
-                addStep(`Pickup the held interaction.`);
-                expect(await interactionConnect.pickupInteraction(pickedUpInteraction)).toBeTruthy();
-            }
-        );
+            tcdbTest('57645', '0', `Place a Social - Conversation Interaction On Hold`, { attributes: [{ attribute: global.tcdb.ATTRIBUTE_SOCIAL_CONVERSATION_INTERACTION_TYPE, value: 'Facebook' }] },
+                async (addStep: Function, trace: Function) => {
+                    addStep(`Using TestAgent's web client, select the Social - Conversation interaction and click the hold button.`);
+                    expect(await interactionConnect.holdInteraction(pickedUpInteraction)).toBeTruthy();
+                    addStep(`Pickup the held interaction.`);
+                    expect(await interactionConnect.pickupInteraction(pickedUpInteraction)).toBeTruthy();
+                }
+            );
 
-        tcdbTest('57558', '2', `Disconnect a Social - Conversation Interaction`, { attributes: [{ attribute: global.tcdb.ATTRIBUTE_SOCIAL_CONVERSATION_INTERACTION_TYPE, value: 'Facebook' }] },
-            async (addStep: Function, trace: Function) => {
-                addStep(`Using TestAgent's web client, select the Social - Conversation interaction and click the disconnect button.`);
-                expect(await interactionConnect.disconnectInteraction(pickedUpInteraction)).toBeTruthy();
-            }
-        );
+            tcdbTest('57558', '2', `Disconnect a Social - Conversation Interaction`, { attributes: [{ attribute: global.tcdb.ATTRIBUTE_SOCIAL_CONVERSATION_INTERACTION_TYPE, value: 'Facebook' }] },
+                async (addStep: Function, trace: Function) => {
+                    addStep(`Using TestAgent's web client, select the Social - Conversation interaction and click the disconnect button.`);
+                    expect(await interactionConnect.disconnectInteraction(pickedUpInteraction)).toBeTruthy();
+                }
+            );
 
-        let pickedUpInteractions: any = {};
-        tcdbTest('57560', '1', `Selecting a Social - Conversation interaction in the 'My Interactions'  view will display the contents of the interaction in the 'Current Interaction' view.`, { attributes: [{ attribute: global.tcdb.ATTRIBUTE_SOCIAL_CONVERSATION_INTERACTION_TYPE, value: 'Facebook' }] },
-            async (addStep: Function, trace: Function) => {
-                // TODO: Once https://devjira.inin.com/browse/IC-149464 works, this should be changed to make two posts and let
-                // the user tiemout on the ACD assignment. Then, the user would go back to available and we would ahve two
-                // non connected interactions to quickly peek at (before the ACD timeout). This would be more reliable
-                // than getting two posts to come through within the ACD timeout timeframe.
+            let pickedUpInteractions: any = {};
+            tcdbTest('57560', '1', `Selecting a Social - Conversation interaction in the 'My Interactions'  view will display the contents of the interaction in the 'Current Interaction' view.`, { attributes: [{ attribute: global.tcdb.ATTRIBUTE_SOCIAL_CONVERSATION_INTERACTION_TYPE, value: 'Facebook' }] },
+                async (addStep: Function, trace: Function) => {
+                    // TODO: Once https://devjira.inin.com/browse/IC-149464 works, this should be changed to make two posts and let
+                    // the user tiemout on the ACD assignment. Then, the user would go back to available and we would ahve two
+                    // non connected interactions to quickly peek at (before the ACD timeout). This would be more reliable
+                    // than getting two posts to come through within the ACD timeout timeframe.
 
-                addStep(`Place 2 different Social - Conversation interactions into TestWorkgroup's queue.`);
-                // Make a Facebook post
-                const post1 = await facebook.postRandom();
-                // Wait 5 minutes for an interaction to alert
-                trace('Waiting 5 minutes for Facebook to pass through interaction.');
-                // TODO: Remove the pickup step. This must work without pickup. - https://devjira.inin.com/browse/IC-149464
-                const pickedUpInteraction1 = await interactionConnect.pickupAlertingInteraction(60 * 1000 * 5);
+                    addStep(`Place 2 different Social - Conversation interactions into TestWorkgroup's queue.`);
+                    // Make a Facebook post
+                    const post1 = await facebook.postRandom();
+                    // Wait 5 minutes for an interaction to alert
+                    trace('Waiting 5 minutes for Facebook to pass through interaction.');
+                    // TODO: Remove the pickup step. This must work without pickup. - https://devjira.inin.com/browse/IC-149464
+                    const pickedUpInteraction1 = await interactionConnect.pickupAlertingInteraction(60 * 1000 * 5);
 
-                addStep(`Select one of the alerting Social - Conversation interactions.`);
-                expect(await interactionConnect.verifyPostVisible(post1)).toBeTruthy();
+                    addStep(`Select one of the alerting Social - Conversation interactions.`);
+                    expect(await interactionConnect.verifyPostVisible(post1)).toBeTruthy();
 
-                // Make a Facebook post
-                const post2 = await facebook.postRandom();
-                // Wait 5 minutes for an interaction to alert
-                trace('Waiting 5 minutes for Facebook to pass through interaction.');
-                // TODO: Remove the pickup step. This must work without pickup. - https://devjira.inin.com/browse/IC-149464
-                const pickedUpInteraction2 = await interactionConnect.pickupAlertingInteraction(60 * 1000 * 5);
+                    // Make a Facebook post
+                    const post2 = await facebook.postRandom();
+                    // Wait 5 minutes for an interaction to alert
+                    trace('Waiting 5 minutes for Facebook to pass through interaction.');
+                    // TODO: Remove the pickup step. This must work without pickup. - https://devjira.inin.com/browse/IC-149464
+                    const pickedUpInteraction2 = await interactionConnect.pickupAlertingInteraction(60 * 1000 * 5);
 
-                addStep(`Select the second alerting Social - Conversation interaction.`);
-                expect(await interactionConnect.verifyPostVisible(post2)).toBeTruthy();
+                    addStep(`Select the second alerting Social - Conversation interaction.`);
+                    expect(await interactionConnect.verifyPostVisible(post2)).toBeTruthy();
 
-                addStep(`Select the Social - Conversation interaction that was selected the first time.`);
-                await interactionConnect.openMyInteractionsTab();
-                await interactionConnect.clickOnInteraction(pickedUpInteraction1);
-                // Let the current interaction view update.
-                await interactionConnect.waitFor(2000);
+                    addStep(`Select the Social - Conversation interaction that was selected the first time.`);
+                    await interactionConnect.openMyInteractionsTab();
+                    await interactionConnect.clickOnInteraction(pickedUpInteraction1);
+                    // Let the current interaction view update.
+                    await interactionConnect.waitFor(2000);
 
-                expect(await interactionConnect.verifyPostVisible(post1)).toBeTruthy();
+                    expect(await interactionConnect.verifyPostVisible(post1)).toBeTruthy();
 
-                pickedUpInteractions = { pickedUpInteraction1, pickedUpInteraction2 };
-            }, 10 * 60 * 1000 // We give a long timeout here in case the interaction takes forever.
-        );
+                    pickedUpInteractions = { pickedUpInteraction1, pickedUpInteraction2 };
+                }, 10 * 60 * 1000 // We give a long timeout here in case the interaction takes forever.
+            );
 
-        tcdbTest('57552', '1', `Filter a User Queue By Social - Conversation Interaction Type`, { attributes: [{ attribute: global.tcdb.ATTRIBUTE_SOCIAL_CONVERSATION_INTERACTION_TYPE, value: 'Facebook' }] },
-            async (addStep: Function, trace: Function) => {
-                addStep(`Add TestUser's user queue view to TestUser's web client.`);
-                await interactionConnect.openUserQueueTab(config.ic.user);
+            tcdbTest('57552', '1', `Filter a User Queue By Social - Conversation Interaction Type`, { attributes: [{ attribute: global.tcdb.ATTRIBUTE_SOCIAL_CONVERSATION_INTERACTION_TYPE, value: 'Facebook' }] },
+                async (addStep: Function, trace: Function) => {
+                    addStep(`Add TestUser's user queue view to TestUser's web client.`);
+                    await interactionConnect.openUserQueueTab(config.ic.user);
 
-                addStep(`Click the filter queue button.`);
-                addStep(`Choose to filter the user queue by the Social - Conversation interaction type.`);
-                await interactionConnect.waitFor(2000);
-                await interactionConnect.filterUserQueueOnSocialConversations();
-                expect(await interactionConnect.getInteractionRow(pickedUpInteractions.pickedUpInteraction1)).toBeTruthy();
+                    addStep(`Click the filter queue button.`);
+                    addStep(`Choose to filter the user queue by the Social - Conversation interaction type.`);
+                    await interactionConnect.waitFor(2000);
+                    await interactionConnect.filterUserQueueOnSocialConversations();
+                    expect(await interactionConnect.getInteractionRow(pickedUpInteractions.pickedUpInteraction1)).toBeTruthy();
 
-                await interactionConnect.clearUserQueueFilter();
-            }
-        );
+                    await interactionConnect.clearUserQueueFilter();
+                }
+            );
 
-        tcdbTest('57548', '3', `Filter a Workgroup Queue By Social - Conversation Interaction Type`, { attributes: [{ attribute: global.tcdb.ATTRIBUTE_SOCIAL_CONVERSATION_INTERACTION_TYPE, value: 'Facebook' }] },
-            async (addStep: Function, trace: Function) => {
-                addStep(`Add TestWorkgroup's workgroup queue view to TestUser's web client.`);
-                await interactionConnect.openWorkgroupQueueTab(config.ic.workgroup);
+            tcdbTest('57548', '3', `Filter a Workgroup Queue By Social - Conversation Interaction Type`, { attributes: [{ attribute: global.tcdb.ATTRIBUTE_SOCIAL_CONVERSATION_INTERACTION_TYPE, value: 'Facebook' }] },
+                async (addStep: Function, trace: Function) => {
+                    addStep(`Add TestWorkgroup's workgroup queue view to TestUser's web client.`);
+                    await interactionConnect.openWorkgroupQueueTab(config.ic.workgroup);
 
-                addStep(`Click the filter queue button.`);
-                addStep(`Choose to filter the workgroup queue by the Social - Conversation interaction type.`);
-                await interactionConnect.waitFor(2000);
-                await interactionConnect.filterWorkgroupQueueOnSocialConversations();
-                expect(await interactionConnect.getInteractionRow(pickedUpInteractions.pickedUpInteraction1)).toBeTruthy();
+                    addStep(`Click the filter queue button.`);
+                    addStep(`Choose to filter the workgroup queue by the Social - Conversation interaction type.`);
+                    await interactionConnect.waitFor(2000);
+                    await interactionConnect.filterWorkgroupQueueOnSocialConversations();
+                    expect(await interactionConnect.getInteractionRow(pickedUpInteractions.pickedUpInteraction1)).toBeTruthy();
 
-                await interactionConnect.clearWorkgroupQueueFilter();
-            }
-        );
-    });
+                    await interactionConnect.clearWorkgroupQueueFilter();
+                }
+            );
 
-    describe('Social Media Ring Sound', () => {
-        tcdbTest('57547', '0', `Configure Ring Sound for Social - Conversations`, { attributes: [{ attribute: global.tcdb.ATTRIBUTE_SOCIAL_CONVERSATION_INTERACTION_TYPE, value: 'Facebook' }] },
-            async (addStep: Function, trace: Function) => {
-                addStep(`Open the application settings dialog and navigate to the ring sounds settings page.`);
-                await interactionConnect.openRingSoundsSettings();
+            tcdbTest('57547', '0', `Configure Ring Sound for Social - Conversations`, { attributes: [{ attribute: global.tcdb.ATTRIBUTE_SOCIAL_CONVERSATION_INTERACTION_TYPE, value: 'Facebook' }] },
+                async (addStep: Function, trace: Function) => {
+                    addStep(`Open the application settings dialog and navigate to the ring sounds settings page.`);
+                    await interactionConnect.openRingSoundsSettings();
 
-                addStep(`Choose a ring sound from the menu (other than the currently selected option) for Social - Conversation interactions.`);
-                addStep(`Save the settings.`);
-                const originalRingSound = await interactionConnect.getCurrentSocialConversationRingSound();
-                const newRingSound = await interactionConnect.toggleSocialConversationRingSound();
+                    addStep(`Choose a ring sound from the menu (other than the currently selected option) for Social - Conversation interactions.`);
+                    addStep(`Save the settings.`);
+                    const originalRingSound = await interactionConnect.getCurrentSocialConversationRingSound();
+                    const newRingSound = await interactionConnect.toggleSocialConversationRingSound();
 
-                expect(originalRingSound).not.toEqual(newRingSound);
+                    expect(originalRingSound).not.toEqual(newRingSound);
 
-                addStep(`Re-open the application settings dialog, navigating to the Ring Sounds tab.`);
-                await interactionConnect.openRingSoundsSettings();
-                const reopenSettingsRingSound = await interactionConnect.getCurrentSocialConversationRingSound();
+                    addStep(`Re-open the application settings dialog, navigating to the Ring Sounds tab.`);
+                    await interactionConnect.openRingSoundsSettings();
+                    const reopenSettingsRingSound = await interactionConnect.getCurrentSocialConversationRingSound();
 
-                expect(reopenSettingsRingSound).toEqual(newRingSound);
+                    expect(reopenSettingsRingSound).toEqual(newRingSound);
 
-                await interactionConnect.toggleSocialConversationRingSound();
-            }
-        );
-    });
+                    await interactionConnect.toggleSocialConversationRingSound();
+                }
+            );
+        });
+*/
+        describe.only('Facebook Social Direct Messages', () => {
+            beforeAll(async () => {
+                twitter = new Twitter(config, global.browser);
+                await twitter.launch();
+                await twitter.logout();
+            });
 
-    afterAll(async () => {
-        await interactionConnect.openTab('My Interactions');
-        await interactionConnect.disconnectInteractions();
-        await interactionConnect.logout();
-        await interactionConnect.page.close();
-        await facebook.page.close();
+            let pickedUpInteraction: string;
+            tcdbTest('57557', '3', 'Pickup a Social - Direct Message Interaction', {},
+                async (addStep: Function, trace: Function) => {
+                    addStep(`Place a Social - Direct Message interaction into TestWorkgroup's queue.`);
+                    await facebook.messageRandom();
+                    addStep(`Pickup the alerting Social - Direct Message interaction.`);
+                    trace('Waiting 5 minutes for Facebook to pass through interaction.');
+                    pickedUpInteraction = await interactionConnect.pickupAlertingInteraction(60 * 1000 * 5);
+                    expect(pickedUpInteraction).toBeTruthy();
+                }
+            );
+
+            tcdbTest('57646', '2', 'Place a Social - Direct Message Interaction On Hold', {},
+                async (addStep: Function, trace: Function) => {
+                    addStep(`Using TestAgent's web client, select the Social - Direct Message interaction and click the hold button.`);
+                    expect(await interactionConnect.holdInteraction(pickedUpInteraction)).toBeTruthy();
+                    addStep(`Pickup the held interaction.`);
+                    expect(await interactionConnect.pickupInteraction(pickedUpInteraction)).toBeTruthy();
+                }
+            );
+
+            tcdbTest('58932', '0', 'Responding to a Social - Direct Message interaction via the post text box', {},
+                async (addStep: Function, trace: Function) => {
+                    addStep(`Using TestAgent's web client, in the 'Current Interaction' view, type out the text of choice in the post text box, and press the send button.`);
+                    const message = await interactionConnect.replyDirectMessageAndVerifyReply(randomWords(10).join(' '));
+                    expect(message).toBeTruthy();
+                }
+            );
+
+            tcdbTest('58934', '0', 'Social - Direct Message Interaction Inline Image Handling', {},
+                async (addStep: Function, trace: Function) => {
+                    addStep(`Place a Social - Direct Message interaction containing an  image into TestWorkgroup's queue.`);
+                    addStep(`Pickup the alerting Social - Direct Message interaction.`);
+                    addStep(`Verify that the image is viewable in TestAgent's 'Current Interaction' tab.`);
+                    await facebook.messageImage();
+                    await interactionConnect.waitForDirectMessageImage();
+                }
+            );
+
+            tcdbTest('57549', '3', 'Filter a Workgroup Queue By Social - Direct Message Interaction Type', {},
+                async (addStep: Function, trace: Function) => {
+                    addStep(`Add TestWorkgroup's workgroup queue view to TestUser's web client.`);
+                    await interactionConnect.openWorkgroupQueueTab(config.ic.workgroup);
+                    addStep(`Click the filter queue button.`);
+                    addStep(`Choose to filter the workgroup queue by the Social - Direct Message interaction type.`);
+                    await interactionConnect.waitFor(2000);
+                    await interactionConnect.filterWorkgroupQueueOnDirectMessages();
+                    expect(await interactionConnect.getInteractionRow(pickedUpInteraction)).toBeTruthy();
+                    await interactionConnect.clearWorkgroupQueueFilter();
+                }
+            );
+
+            tcdbTest('57553', '4', 'Filter a User Queue By Social - Direct Message Interaction Type', {},
+                async (addStep: Function, trace: Function) => {
+                    addStep(`Add TestUser's user queue view to TestUser's web client.`);
+                    await interactionConnect.openUserQueueTab(config.ic.user);
+                    addStep(`Click the filter queue button.`);
+                    addStep(`Choose to filter the user queue by the Social - Direct Message interaction type.`);
+                    await interactionConnect.waitFor(2000);
+                    await interactionConnect.filterUserQueueOnDirectMessages();
+                    expect(await interactionConnect.getInteractionRow(pickedUpInteraction)).toBeTruthy();
+                    await interactionConnect.clearUserQueueFilter();
+                }
+            );
+
+            tcdbTest('57561', '2', 'Selecting a Social - Direct Message interaction in the \'My Interactions\'  view will display the contents of the interaction in the \'Current Interaction\' view.', {},
+                async (addStep: Function, trace: Function) => {
+                    addStep(`Place 2 different Social - Direct Message interactions into TestWorkgroup's queue.`);
+                    await twitter.signIn(config.twitter.user2, config.twitter.password2);
+                    addStep(`Select one of the alerting Social - Direct Message interactions.`);
+                    addStep(`Select the second alerting Social - Direct Message interaction.`);
+                }
+            );
+
+            tcdbTest('57648', '3', 'Transfer a Social - Direct Message Interaction', {},
+                async (addStep: Function, trace: Function) => {
+                    addStep(`Using TestAgent1's web client, select the Social - Direct Message interaction and click the transfer button.`);
+                    addStep(`Within the transfer dialog, enter TestAgent2's extension.`);
+                    addStep(`Click Transfer.`);
+                }
+            );
+
+            tcdbTest('57559', '4', 'Disconnect a Social - Direct Message Interaction', {},
+                async (addStep: Function, trace: Function) => {
+                    addStep(`Using TestAgent's web client, select the Social - Direct Message interaction and click the disconnect button.`);
+                    expect(await interactionConnect.disconnectInteraction(pickedUpInteraction)).toBeTruthy();
+                }
+            );
+
+            tcdbTest('57546', '2', 'Configure Ring Sound for Social - Direct Messages', {},
+                async (addStep: Function, trace: Function) => {
+                    addStep(`Open the application settings dialog and navigate to the ring sounds settings page.`);
+                    await interactionConnect.openRingSoundsSettings();
+
+                    addStep(`Choose a ring sound from the menu (other than the currently selected option) for Social - Direct Message interactions.`);
+                    addStep(`Save the settings.`);
+                    const originalRingSound = await interactionConnect.getCurrentDirectMessageRingSound();
+                    const newRingSound = await interactionConnect.toggleDirectMessageRingSound();
+                    expect(originalRingSound).not.toEqual(newRingSound);
+
+                    addStep(`Re-open the application settings dialog, navigating to the Ring Sounds tab.`);
+                    await interactionConnect.openRingSoundsSettings();
+                    const reopenSettingsRingSound = await interactionConnect.getCurrentDirectMessageRingSound();
+                    expect(reopenSettingsRingSound).toEqual(newRingSound);
+                    await interactionConnect.toggleDirectMessageRingSound();
+                }
+            );
+
+            afterAll(async () => {
+                await twitter.page.close();
+            });
+        });
+
+        afterAll(async () => {
+            await interactionConnect.openTab('My Interactions');
+            await interactionConnect.disconnectInteractions();
+            await interactionConnect.logout();
+            await interactionConnect.page.close();
+            await facebook.page.close();
+        });
     });
 });

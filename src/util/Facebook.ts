@@ -105,4 +105,54 @@ export default class Facebook extends Base {
 
         return randomPost;
     }
+
+    async messageRandom(): Promise<string> {
+        if (!this.page) {
+            throw new Error('Page is not yet loaded.');
+        }
+        let randomPost;
+
+        await this.bringToFront();
+        this.log(`Load page: ${this.config.facebook.pageUrl}`);
+        await this.page.goto(this.config.facebook.pageUrl);
+
+        randomPost = randomWords(10).join(' ');
+
+        await this.page.waitFor('button[color=accentblue] span');
+        // The click gets through the overlay for the notification
+        await this.page.click('button[color=accentblue] span');
+        await this.page.hover('button[color=accentblue] span');
+
+        for (const option of await this.page.$$('div[role=button]')) {
+            const optionText = (await (await option.getProperty('innerHTML')).jsonValue()) as string;
+            if (optionText === 'Test Button') {
+                await option.hover();
+                await option.focus();
+                await option.click({ delay: 1000 });
+                break;
+            }
+        }
+
+        await this.page.waitFor(3000);
+        const divs = await this.page.$$('div[contenteditable=true]');
+        if (divs && divs.length > 1) {
+            const div = divs[1];
+            await div.click();
+            await div.type(randomPost);
+            await div.press('Enter');
+        }
+
+        return randomPost;
+    }
+
+    async messageImage(): Promise<void> {
+        await this.bringToFront();
+        const upload = await this.page.$('form[title="Add photos"] input[type=file]');
+        await upload.uploadFile('./src/resources/testImage.png');
+        const divs = await this.page.$$('div[contenteditable=true]');
+        if (divs && divs.length > 1) {
+            const div = divs[1];
+            await div.press('Enter');
+        }
+    }
 }
