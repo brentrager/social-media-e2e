@@ -133,7 +133,7 @@ export default class Facebook extends Base {
             }
         }
 
-        await this.page.waitFor(3000);
+        await this.page.waitFor(5000);
         const divs = await this.page.$$('div[contenteditable=true]');
         if (divs && divs.length > 1) {
             const div = divs[1];

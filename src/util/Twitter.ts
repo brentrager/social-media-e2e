@@ -50,16 +50,17 @@ export default class Twitter extends Base {
     }
 
     async signIn(user: string, password: string): Promise<void> {
+        await this.page.bringToFront();
         await this.page.goto("https://twitter.com");
         this.log(`Logging on as: ${user}, ${password}`);
         const twitterUsernameInput = ((await this.page.waitFor('input[type="text"]')).asElement()) as puppeteer.ElementHandle;
         await twitterUsernameInput.type(user);
         const twitterPasswordInput = (await this.page.$('input[type="password"]')) as puppeteer.ElementHandle;
         await twitterPasswordInput.type(password);
-        const twitterSubmitButton = (await this.page.$('input[value="Log in"]')) as puppeteer.ElementHandle;
+        const twitterSubmitButton = (await this.page.$('input.EdgeButton[value="Log in"]')) as puppeteer.ElementHandle;
         await twitterSubmitButton.click();
         // The first easy thing I found to wait for after login was the search bar.
-        await this.page.waitForSelector('div.wtf-module', {visible: true});
+        await this.page.waitForSelector('input.search-input', {visible: true});
     }
 
     async logout(): Promise<void> {
@@ -205,5 +206,32 @@ export default class Twitter extends Base {
         }
 
         return randomPost;
+    }
+
+    async messageRandom(user: string): Promise<string> {
+        if (!this.page) {
+            throw new Error("Page is not yet loaded.");
+        }
+        const randomPost = randomWords(10).join(" ");
+        await this.page.click('a.global-dm-nav');
+        await this.page.waitFor('button.DMComposeButton');
+        const conversations = await this.page.$$('div.DMInboxItem-title span.username b');
+
+        for (const conversation of conversations) {
+            const username = await (await conversation.getProperty('innerHTML')).jsonValue();
+            if (username === user) {
+                await username.click();
+                await this.page.waitFor('div.DMComposer-editor');
+                await this.page.click('div.DMComposer-editor');
+                await this.page.type('div.DMComposer-editor', randomPost);
+                await this.page.click('div.DMComposer-send button');
+
+                return randomPost;
+            }
+        }
+
+        const error = new Error(`Failed to send random message to user ${user}`);
+        this.logError(error);
+        throw error;
     }
 }

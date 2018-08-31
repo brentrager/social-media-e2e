@@ -259,7 +259,7 @@ export default class InteractionConnect extends Base {
         return post;
     }
 
-    private async waitForDirectMessage(reply: string, timeout: number = 5 * 60 * 1000): Promise<puppeteer.JSHandle> {
+    async waitForDirectMessage(reply: string, timeout: number = 5 * 60 * 1000): Promise<puppeteer.JSHandle> {
         const timeoutTime = moment().add(moment.duration(timeout));
         while (moment() < timeoutTime) {
             await this.page.waitFor(500);
