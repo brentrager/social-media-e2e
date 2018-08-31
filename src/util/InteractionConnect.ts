@@ -141,7 +141,8 @@ export default class InteractionConnect extends Base {
 
     private async performActionOnInteraction(interaction: string, action: string): Promise<void> {
         await this.clickOnInteraction(interaction);
-        await this.page.click(`[data-inintest="inin-command-button-${action}"]`);
+        const actionButton = await this.page.waitForSelector(`inin-command-toolbar button[data-inintest="inin-command-button-${action}-base"]`, { visible: true });
+        await actionButton.click();
         this.log(`Performed '${action}' on interaction ${interaction}`);
     }
 
@@ -169,12 +170,16 @@ export default class InteractionConnect extends Base {
 
     async disconnectInteraction(interaction: string, timeout: number = this.DEFAULT_TIMEOUT): Promise<string | undefined> {
         await this.page.bringToFront();
-        await this.openMyInteractionsTab();
         await this.performActionOnInteraction(interaction, 'disconnect');
 
         const disconnectedInteraction = await this.waitForStateAndGetInteractionInState('Disconnected', interaction, timeout);
 
         return (disconnectedInteraction === interaction) ? disconnectedInteraction : undefined;
+    }
+
+    async confirmUnownedDisconnect(): Promise<void> {
+        await this.page.waitFor('button[data-inintest="confirmation-modal-form-submit"]');
+        await this.page.click('button[data-inintest="confirmation-modal-form-submit"]');
     }
 
     async disconnectInteractions(timeout: number = this.DEFAULT_TIMEOUT): Promise<void> {
@@ -197,6 +202,21 @@ export default class InteractionConnect extends Base {
         const heldInteraction = await this.waitForStateAndGetInteractionInState('Held', interaction, timeout);
 
         return (heldInteraction === interaction) ? heldInteraction : undefined;
+    }
+
+    async transferInteraction(interaction: string, transferTarget: string, timeout: number = this.DEFAULT_TIMEOUT): Promise<void> {
+        await this.page.bringToFront();
+        await this.openMyInteractionsTab();
+        await this.performActionOnInteraction(interaction, 'transfer');
+
+        await this.page.waitFor('input[data-inintest="advanced-transfer-modal-lookup-textbox"]');
+        await this.page.type('input[data-inintest="advanced-transfer-modal-lookup-textbox"]', transferTarget);
+        await this.page.waitFor(1000);
+        await this.page.keyboard.press('ArrowDown');
+        await this.page.keyboard.press('Enter');
+        await this.page.waitFor(1000);
+        await this.page.click('button[data-inintest="advanced-consult-transfer-button"]');
+        await this.page.waitFor(5000);
     }
 
     private async waitForNewReply(reply: string, timeout: number = 5 * 60 * 1000): Promise<puppeteer.JSHandle> {

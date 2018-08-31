@@ -70,10 +70,12 @@ export default class Twitter extends Base {
 
         try {
             await this.page.bringToFront();
-            const twitterUserDropdown = ((await this.page.waitForSelector('a#user-dropdown-toggle', {visible: true})).asElement()) as puppeteer.ElementHandle;
-            await twitterUserDropdown.click();
-            const twitterLogoutButton = ((await this.page.waitForSelector("li#signout-button", {visible: true})).asElement()) as puppeteer.ElementHandle;
-            await twitterLogoutButton.click();
+            await this.page.waitFor('a#user-dropdown-toggle');
+            await this.page.waitFor(1000);
+            await this.page.click('a#user-dropdown-toggle');
+            await this.page.waitFor('li#signout-button');
+            await this.page.waitFor(500);
+            await this.page.click('li#signout-button');
             await this.page.waitFor('input[placeholder="Password"]');
             this.log(`Logging out of Twitter`);
         } catch (error) {
@@ -213,14 +215,17 @@ export default class Twitter extends Base {
             throw new Error("Page is not yet loaded.");
         }
         const randomPost = randomWords(10).join(" ");
+        await this.page.waitFor(3000);
+        await this.page.waitFor('a.global-dm-nav');
         await this.page.click('a.global-dm-nav');
         await this.page.waitFor('button.DMComposeButton');
+        await this.page.waitFor(3000);
         const conversations = await this.page.$$('div.DMInboxItem-title span.username b');
 
         for (const conversation of conversations) {
             const username = await (await conversation.getProperty('innerHTML')).jsonValue();
             if (username === user) {
-                await username.click();
+                await conversation.click();
                 await this.page.waitFor('div.DMComposer-editor');
                 await this.page.click('div.DMComposer-editor');
                 await this.page.type('div.DMComposer-editor', randomPost);

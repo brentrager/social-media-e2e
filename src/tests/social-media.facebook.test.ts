@@ -19,8 +19,7 @@ beforeAll(async () => {
 });
 
 describe('Social Media - Facebook', () => {
-    /*
-    describe.skip('Facebook Social Config', () => {
+    describe('Facebook Social Config', () => {
         beforeAll(async () => {
             // Launch Interaction Connect
             interactionConnect = new InteractionConnect(config, global.browser);
@@ -117,27 +116,25 @@ describe('Social Media - Facebook', () => {
         });
     });
 
-    */
-    describe.only('Social Media Facebook Interactions', async () => {
+    describe('Social Media Facebook Interactions', async () => {
         beforeAll(async () => {
             // Launch Interaction Connect
             interactionConnect = new InteractionConnect(config, global.browser);
             await interactionConnect.launch();
             await interactionConnect.openTab('My Interactions');
             await interactionConnect.disconnectInteractions();
-            // await interactionConnect.openSocialMediaConfigTab();
-            // await interactionConnect.addFacebookAccount(config.facebook.user, config.facebook.password);
-            // await interactionConnect.addFacebookChannel(randomWords(2).join(' '), config.facebook.pageName, config.facebook.socialConversationWorkgroup);
+            await interactionConnect.openSocialMediaConfigTab();
+            await interactionConnect.addFacebookAccount(config.facebook.user, config.facebook.password);
+            await interactionConnect.addFacebookChannel(randomWords(2).join(' '), config.facebook.pageName, config.facebook.socialConversationWorkgroup);
 
             // Launch Facebook
             facebook = new Facebook(config, global.browser);
             await facebook.launch();
         });
 
-        /*
-        describe.skip('Facebook Social Conversations', () => {
+        describe('Facebook Social Conversations', () => {
             let pickedUpInteraction: string;
-            tcdbTest.only('57557', '3', `Pickup a Social - Direct Message Interaction`, {},
+            tcdbTest('57557', '3', `Pickup a Social - Direct Message Interaction`, {},
                 async (addStep: Function, trace: Function) => {
                     addStep(`Place a Social - Direct Message interaction into TestWorkgroup's queue.`);
                     // Make a Facebook post
@@ -277,8 +274,8 @@ describe('Social Media - Facebook', () => {
                 }
             );
         });
-*/
-        describe.only('Facebook Social Direct Messages', () => {
+
+        describe('Facebook Social Direct Messages', () => {
             beforeAll(async () => {
                 twitter = new Twitter(config, global.browser);
                 await twitter.launch();
@@ -298,7 +295,7 @@ describe('Social Media - Facebook', () => {
                 }
             );
 
-            tcdbTest.skip('57646', '2', 'Place a Social - Direct Message Interaction On Hold', {},
+            tcdbTest('57646', '2', 'Place a Social - Direct Message Interaction On Hold', {},
                 async (addStep: Function, trace: Function) => {
                     addStep(`Using TestAgent's web client, select the Social - Direct Message interaction and click the hold button.`);
                     expect(await interactionConnect.holdInteraction(pickedUpInteraction)).toBeTruthy();
@@ -307,7 +304,7 @@ describe('Social Media - Facebook', () => {
                 }
             );
 
-            tcdbTest.skip('58932', '0', 'Responding to a Social - Direct Message interaction via the post text box', {},
+            tcdbTest('58932', '0', 'Responding to a Social - Direct Message interaction via the post text box', {},
                 async (addStep: Function, trace: Function) => {
                     addStep(`Using TestAgent's web client, in the 'Current Interaction' view, type out the text of choice in the post text box, and press the send button.`);
                     const message = await interactionConnect.replyDirectMessageAndVerifyReply(randomWords(10).join(' '));
@@ -315,7 +312,7 @@ describe('Social Media - Facebook', () => {
                 }
             );
 
-            tcdbTest.skip('58934', '0', 'Social - Direct Message Interaction Inline Image Handling', {},
+            tcdbTest('58934', '0', 'Social - Direct Message Interaction Inline Image Handling', {},
                 async (addStep: Function, trace: Function) => {
                     addStep(`Place a Social - Direct Message interaction containing an  image into TestWorkgroup's queue.`);
                     addStep(`Pickup the alerting Social - Direct Message interaction.`);
@@ -325,7 +322,7 @@ describe('Social Media - Facebook', () => {
                 }
             );
 
-            tcdbTest.skip('57549', '3', 'Filter a Workgroup Queue By Social - Direct Message Interaction Type', {},
+            tcdbTest('57549', '3', 'Filter a Workgroup Queue By Social - Direct Message Interaction Type', {},
                 async (addStep: Function, trace: Function) => {
                     addStep(`Add TestWorkgroup's workgroup queue view to TestUser's web client.`);
                     await interactionConnect.openWorkgroupQueueTab(config.ic.workgroup);
@@ -338,7 +335,7 @@ describe('Social Media - Facebook', () => {
                 }
             );
 
-            tcdbTest.skip('57553', '4', 'Filter a User Queue By Social - Direct Message Interaction Type', {},
+            tcdbTest('57553', '4', 'Filter a User Queue By Social - Direct Message Interaction Type', {},
                 async (addStep: Function, trace: Function) => {
                     addStep(`Add TestUser's user queue view to TestUser's web client.`);
                     await interactionConnect.openUserQueueTab(config.ic.user);
@@ -366,27 +363,33 @@ describe('Social Media - Facebook', () => {
                     addStep(`Select the second alerting Social - Direct Message interaction.`);
                     await interactionConnect.clickOnInteraction(pickedUpInteraction);
                     await interactionConnect.waitForDirectMessage(originalMessage);
-
                 }
             );
 
             tcdbTest('57648', '3', 'Transfer a Social - Direct Message Interaction', {},
                 async (addStep: Function, trace: Function) => {
                     addStep(`Using TestAgent1's web client, select the Social - Direct Message interaction and click the transfer button.`);
-                    await interactionConnect.clickOnInteraction(pickedUpInteraction2);
                     addStep(`Within the transfer dialog, enter TestAgent2's extension.`);
                     addStep(`Click Transfer.`);
+                    await interactionConnect.clickOnInteraction(pickedUpInteraction2);
+                    await interactionConnect.transferInteraction(pickedUpInteraction2, config.ic.adminUser);
+                    await interactionConnect.openUserQueueTab(config.ic.adminUser);
+                    await interactionConnect.waitFor(2000);
+                    expect(await interactionConnect.getInteractionRow(pickedUpInteraction2)).toBeTruthy();
+                    // TODO: await interactionConnect.disconnectInteraction(pickedUpInteraction2);
+                    // TODO: await interactionConnect.confirmUnownedDisconnect();
+                    await interactionConnect.openMyInteractionsTab();
                 }
             );
 
-            tcdbTest.skip('57559', '4', 'Disconnect a Social - Direct Message Interaction', {},
+            tcdbTest('57559', '4', 'Disconnect a Social - Direct Message Interaction', {},
                 async (addStep: Function, trace: Function) => {
                     addStep(`Using TestAgent's web client, select the Social - Direct Message interaction and click the disconnect button.`);
                     expect(await interactionConnect.disconnectInteraction(pickedUpInteraction)).toBeTruthy();
                 }
             );
 
-            tcdbTest.skip('57546', '2', 'Configure Ring Sound for Social - Direct Messages', {},
+            tcdbTest('57546', '2', 'Configure Ring Sound for Social - Direct Messages', {},
                 async (addStep: Function, trace: Function) => {
                     addStep(`Open the application settings dialog and navigate to the ring sounds settings page.`);
                     await interactionConnect.openRingSoundsSettings();
