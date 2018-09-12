@@ -1,4 +1,4 @@
-/* tslint:disable:quotemark max-line-length */
+/* tslint:disable:quotemark max-line-length max-file-line-count */
 import * as puppeteer from 'puppeteer';
 import * as moment from 'moment';
 import { Config } from './Config';
@@ -141,7 +141,8 @@ export default class InteractionConnect extends Base {
 
     private async performActionOnInteraction(interaction: string, action: string): Promise<void> {
         await this.clickOnInteraction(interaction);
-        await this.page.click(`[data-inintest="inin-command-button-${action}"]`);
+        const actionButton = await this.page.waitForSelector(`inin-command-toolbar button[data-inintest="inin-command-button-${action}-base"]`, { visible: true });
+        await actionButton.click();
         this.log(`Performed '${action}' on interaction ${interaction}`);
     }
 
@@ -169,12 +170,16 @@ export default class InteractionConnect extends Base {
 
     async disconnectInteraction(interaction: string, timeout: number = this.DEFAULT_TIMEOUT): Promise<string | undefined> {
         await this.page.bringToFront();
-        await this.openMyInteractionsTab();
         await this.performActionOnInteraction(interaction, 'disconnect');
 
         const disconnectedInteraction = await this.waitForStateAndGetInteractionInState('Disconnected', interaction, timeout);
 
         return (disconnectedInteraction === interaction) ? disconnectedInteraction : undefined;
+    }
+
+    async confirmUnownedDisconnect(): Promise<void> {
+        await this.page.waitFor('button[data-inintest="confirmation-modal-form-submit"]');
+        await this.page.click('button[data-inintest="confirmation-modal-form-submit"]');
     }
 
     async disconnectInteractions(timeout: number = this.DEFAULT_TIMEOUT): Promise<void> {
@@ -197,6 +202,21 @@ export default class InteractionConnect extends Base {
         const heldInteraction = await this.waitForStateAndGetInteractionInState('Held', interaction, timeout);
 
         return (heldInteraction === interaction) ? heldInteraction : undefined;
+    }
+
+    async transferInteraction(interaction: string, transferTarget: string, timeout: number = this.DEFAULT_TIMEOUT): Promise<void> {
+        await this.page.bringToFront();
+        await this.openMyInteractionsTab();
+        await this.performActionOnInteraction(interaction, 'transfer');
+
+        await this.page.waitFor('input[data-inintest="advanced-transfer-modal-lookup-textbox"]');
+        await this.page.type('input[data-inintest="advanced-transfer-modal-lookup-textbox"]', transferTarget);
+        await this.page.waitFor(1000);
+        await this.page.keyboard.press('ArrowDown');
+        await this.page.keyboard.press('Enter');
+        await this.page.waitFor(1000);
+        await this.page.click('button[data-inintest="advanced-consult-transfer-button"]');
+        await this.page.waitFor(5000);
     }
 
     private async waitForNewReply(reply: string, timeout: number = 5 * 60 * 1000): Promise<puppeteer.JSHandle> {
@@ -259,6 +279,59 @@ export default class InteractionConnect extends Base {
         return post;
     }
 
+    async waitForDirectMessage(reply: string, timeout: number = 5 * 60 * 1000): Promise<puppeteer.JSHandle> {
+        const timeoutTime = moment().add(moment.duration(timeout));
+        while (moment() < timeoutTime) {
+            await this.page.waitFor(500);
+
+            for (const message of await this.page.$$('div.message-message')) {
+                const text = await (await message.getProperty('innerHTML')).jsonValue();
+                if (text === reply) {
+                    return message;
+                }
+            }
+        }
+
+        const error = new Error(`Timeout waiting for reply: ${reply}`);
+        this.logError(error);
+        throw error;
+    }
+
+    async waitForDirectMessageImage(timeout: number = 5 * 60 * 1000): Promise<puppeteer.JSHandle> {
+        await this.page.bringToFront();
+        const initialMessages = await this.page.$$('div.message img');
+
+        const timeoutTime = moment().add(moment.duration(timeout));
+        while (moment() < timeoutTime) {
+            await this.page.waitFor(500);
+            const messages = await this.page.$$('div.message img');
+
+            if (messages.length > initialMessages.length) {
+                return messages[messages.length - 1];
+            }
+        }
+
+        const error = new Error(`Timeout waiting for image`);
+        this.logError(error);
+        throw error;
+    }
+
+    async replyDirectMessageAndVerifyReply(reply: string): Promise<puppeteer.JSHandle> {
+        await this.page.bringToFront();
+        await this.openCurrentInteractionTab();
+        const replyTextArea = await this.checkOrWaitFor(`div.direct-message-composition-area textarea`);
+
+        await replyTextArea.type(reply);
+
+        this.log(`Replying to Direct Message : ${reply}`);
+        await this.page.click('div.direct-message-composition-area button');
+
+        const post = await this.waitForDirectMessage(reply);
+        this.log(`Verified reply to direct message: ${reply}`);
+
+        return post;
+    }
+
     async verifyPostVisible(post: string): Promise<boolean> {
         await this.page.bringToFront();
         await this.openCurrentInteractionTab();
@@ -310,6 +383,7 @@ export default class InteractionConnect extends Base {
     async waitForTabToOpen(tabName: string): Promise<puppeteer.ElementHandle> {
         await this.page.bringToFront();
         // If this selector is available, the tab is available.
+
         return await this.checkOrWaitFor(`span.inin-docking-region-display-name[uib-tooltip="${tabName}"]`);
     }
 
@@ -320,7 +394,7 @@ export default class InteractionConnect extends Base {
         return !!await this.page.$(`span.inin-docking-region-display-name[uib-tooltip="${tabName}"]`);
     }
 
-    public async addNewTab(viewId: string, tabName: string) {
+    async addNewTab(viewId: string, tabName: string): Promise<void> {
         await this.page.bringToFront();
         await this.page.click('.inin-tabset-end-button[data-inintest="docking-add-view"] i.glyphicons-plus');
         await this.checkOrWaitFor('button[data-inintest="add-view-popover-center-show-all"]');
@@ -461,14 +535,38 @@ export default class InteractionConnect extends Base {
         await this.page.waitFor(5000);
     }
 
+    async filterUserQueueOnDirectMessages(): Promise<void> {
+        await this.page.bringToFront();
+        const iconFilter = await this.checkOrWaitFor(`div[data-inintest*="ic-interactions-queue-view-User-view"] i.icon-filter`, this.DEFAULT_TIMEOUT, true) as puppeteer.ElementHandle;
+        await iconFilter.click();
+        const interactionTypeSelect = await this.checkOrWaitFor(`div.popover-content div[data-inintest="filter-interaction-types-multiselect inin-checkbox-multiselect-All`, this.DEFAULT_TIMEOUT, true) as puppeteer.ElementHandle;
+        await interactionTypeSelect.click();
+        const socialConversationCheckbox = await this.checkOrWaitFor(`div.popover-content input[data-inintest="inin-checkbox-multiselect-item-checkbox-Social Direct Message"]`) as puppeteer.ElementHandle;
+        await socialConversationCheckbox.click();
+        await iconFilter.click();
+        await this.page.waitFor(5000);
+    }
+
     async filterWorkgroupQueueOnSocialConversations(): Promise<void> {
         await this.page.bringToFront();
         const iconFilter = await this.checkOrWaitFor(`div[data-inintest*="ic-interactions-queue-view-Workgroup-view"] i.icon-filter`, this.DEFAULT_TIMEOUT, true) as puppeteer.ElementHandle;
         await iconFilter.click();
         const interactionTypeSelect = await this.checkOrWaitFor(`div.popover-content div[data-inintest="filter-interaction-types-multiselect inin-checkbox-multiselect-All"]`, this.DEFAULT_TIMEOUT, true) as puppeteer.ElementHandle;
         await interactionTypeSelect.click();
-        const socialConversationCheckbox = await this.checkOrWaitFor(`div.popover-content input[data-inintest="inin-checkbox-multiselect-item-checkbox-Social Conversation"]`) as puppeteer.ElementHandle;
-        await socialConversationCheckbox.click();
+        const directMessageCheckbox = await this.checkOrWaitFor(`div.popover-content input[data-inintest="inin-checkbox-multiselect-item-checkbox-Social Conversation"]`) as puppeteer.ElementHandle;
+        await directMessageCheckbox.click();
+        await iconFilter.click();
+        await this.page.waitFor(5000);
+    }
+
+    async filterWorkgroupQueueOnDirectMessages(): Promise<void> {
+        await this.page.bringToFront();
+        const iconFilter = await this.checkOrWaitFor(`div[data-inintest*="ic-interactions-queue-view-Workgroup-view"] i.icon-filter`, this.DEFAULT_TIMEOUT, true) as puppeteer.ElementHandle;
+        await iconFilter.click();
+        const interactionTypeSelect = await this.checkOrWaitFor(`div.popover-content div[data-inintest="filter-interaction-types-multiselect inin-checkbox-multiselect-All"]`, this.DEFAULT_TIMEOUT, true) as puppeteer.ElementHandle;
+        await interactionTypeSelect.click();
+        const directMessageCheckbox = await this.checkOrWaitFor(`div.popover-content input[data-inintest="inin-checkbox-multiselect-item-checkbox-Social Direct Message"]`) as puppeteer.ElementHandle;
+        await directMessageCheckbox.click();
         await iconFilter.click();
         await this.page.waitFor(5000);
     }
@@ -516,6 +614,13 @@ export default class InteractionConnect extends Base {
         return (await (await (await this.page.$('ic-ring-sound-select#ring-sounds-form-social-conversation select')).getProperty('value')).jsonValue());
     }
 
+    async getCurrentDirectMessageRingSound(): Promise<string> {
+        await this.page.bringToFront();
+        await this.checkOrWaitFor(`ic-ring-sound-select#ring-sounds-form-direct-message`);
+
+        return (await (await (await this.page.$('ic-ring-sound-select#ring-sounds-form-direct-message select')).getProperty('value')).jsonValue());
+    }
+
     private originalRingSound: string;
 
     async toggleSocialConversationRingSound(): Promise<string> {
@@ -554,30 +659,70 @@ export default class InteractionConnect extends Base {
         return currentRingSound;
     }
 
-    public async doesElementExist(selector: string) {
+    async toggleDirectMessageRingSound(): Promise<string> {
+        // Changes between the original setting and another setting
+        await this.page.bringToFront();
+        if (!this.originalRingSound) {
+            this.originalRingSound = await this.getCurrentDirectMessageRingSound();
+            this.log(`Original ring sound set to "${this.originalRingSound}"`);
+        }
+
+        let currentRingSound = await this.getCurrentDirectMessageRingSound();
+
+        if (currentRingSound === this.originalRingSound) {
+            let newOptionText: string;
+            for (const option of await this.page.$$('ic-ring-sound-select#ring-sounds-form-direct-message select option')) {
+                const optionText = (await (await option.getProperty('value')).jsonValue()) as string;
+                if (optionText !== this.originalRingSound) {
+                    newOptionText = optionText;
+                    break;
+                }
+            }
+
+            await this.page.select('ic-ring-sound-select#ring-sounds-form-direct-message select', newOptionText);
+        } else {
+            await this.page.select('ic-ring-sound-select#ring-sounds-form-direct-message select', this.originalRingSound);
+        }
+
+        currentRingSound = await this.getCurrentDirectMessageRingSound();
+        this.log(`Selected Direct Message Ring Sound: ${currentRingSound}`);
+
+        await this.page.click('button[data-inintest="configuration-dialog-okay"]');
+
+        // Let the modal close.
+        await this.page.waitFor(5000);
+
+        return currentRingSound;
+    }
+
+    async doesElementExist(selector: string): Promise<boolean> {
         const element = await this.page.$(selector);
+
         return element !== null;
     }
 
-    public async getGridRow(index: number, gridSelector = "") : Promise<puppeteer.ElementHandle> {
+    async getGridRow(index: number, gridSelector = ""): Promise<puppeteer.ElementHandle> {
         if (gridSelector === "") {
             gridSelector += `.ui-grid-viewport .ui-grid-row`;
         }
-        const gridRows = <Array<puppeteer.ElementHandle>>await this.page.$$(gridSelector);
+        const gridRows = await this.page.$$(gridSelector) as Array<puppeteer.ElementHandle>;
         if (gridRows.length === 0) {
             this.log("Grid was empty returning null");
+
             return null;
         }
         if (gridRows.length > index) {
             this.log(`Found requested index: ${index}`);
+
             return gridRows[index];
         } else {
             this.log("Grid was smaller than requested returning null");
+
             return gridRows[0];
         }
     }
 
-    public async runQualitySearch() {
+    async runQualitySearch(): Promise<void> {
         const tabExists = await this.doesElementExist(`span.inin-docking-region-display-name[uib-tooltip="My Quality Results"]`);
         if (!tabExists) {
             await this.addNewTab("qualityDashboard", "My Quality Results");
@@ -588,34 +733,36 @@ export default class InteractionConnect extends Base {
         await this.page.waitFor(5000);
     }
 
-    public async selectQualityResult(index: number) {
+    async selectQualityResult(index: number): Promise<void> {
         const row = await this.getGridRow(index, '[data-inintest="ic-quality-scorecard-search-results-grid"]');
         if (row === null) {
             this.log("Was unable to click requested row");
+
             return;
         }
         this.log(`Retrieved row: ${index}`);
-        const scorecardButton = <puppeteer.ElementHandle>await row.$('[data-inintest="scorecard-search-results-open-link-data.scorecard.scorecardId"]');
+        const scorecardButton = await row.$('[data-inintest="scorecard-search-results-open-link-data.scorecard.scorecardId"]') as puppeteer.ElementHandle;
         this.log("Found scorecard button for row");
         await scorecardButton.click();
         this.log("Clicked scorecard button");
         await this.page.waitFor(5000);
     }
 
-    public async closeScorecardDetails() {
-        //Some kind of puppeteer bug with clicking musses this up but
-        //direct execution works for some reason
+    async closeScorecardDetails(): Promise<void> {
+        // Some kind of puppeteer bug with clicking musses this up but
+        // direct execution works for some reason
         await this.page.evaluate(selector => document.querySelector(selector).click(),
         '[data-inintest="ic-quality-scorecard-focus-close-button"');
         this.log("Closing Scorecard");
     }
 
-    public async canAdHocRecord() {
+    async canAdHocRecord(): Promise<boolean> {
         const disabledAdHoc = await this.doesElementExist('.disabled[data-inintest="inin-command-button-record"]');
+
         return !disabledAdHoc;
     }
 
-    public async adHocRecord(start: boolean) {
+    async adHocRecord(start: boolean): Promise<void> {
         if (await this.canAdHocRecord()) {
             await this.page.click('[data-inintest="inin-command-button-record"]');
             if (start) {
@@ -629,12 +776,13 @@ export default class InteractionConnect extends Base {
         }
     }
 
-    public async canSnipRecord() {
+    async canSnipRecord(): Promise<boolean> {
         const disabledSnip = await !this.doesElementExist('.disabled[data-inintest="inin-command-button-recordSnippet"]');
+
         return !disabledSnip;
     }
 
-    public async snipRecord(start: boolean) {
+    async snipRecord(start: boolean): Promise<void> {
         if (await this.canSnipRecord()) {
             await this.page.click('[data-inintest="inin-command-button-recordSnippet"]');
             if (start) {
