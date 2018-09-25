@@ -444,6 +444,62 @@ export default class InteractionConnect extends Base {
         }
     }
 
+    async addAndInsertTextResponse(): Promise<void> {
+        const responseManagementView = 'Response Management';
+        // Open the Response Management View
+        // Click add view icon
+        await this.page.click('button[data-inintest="docking-add-view"] i.glyphicons-plus');
+        await this.checkOrWaitFor('button[data-inintest="add-view-popover-center-show-all"]');
+        await this.page.click('button[data-inintest="add-view-popover-center-show-all"]');
+        await this.checkOrWaitFor('label[data-inintest="add-view-dialog-item-responseManagement"]');
+        // Click Response Management
+        await this.page.click('label[data-inintest="add-view-dialog-item-responseManagement"]');
+        // Click Add View
+        await this.page.click('button[data-inintest="add-link"]');
+        await this.waitForTabToOpen(responseManagementView);
+        await this.openTab(responseManagementView);
+        //view response management editor
+        await this.checkOrWaitFor('button[data-inintest="ic-response-management-configure-button"]');
+        await this.page.click('button[data-inintest="ic-response-management-configure-button"]');
+        //click add response button
+        await this.checkOrWaitFor('button[data-inintest="ic-response-button-add-item"]');
+        await this.page.click('button[data-inintest="ic-response-button-add-item"]');
+        //select text response type
+        await this.checkOrWaitFor('a[data-inintest="ic-response-link-add-text-item"]');
+        await this.page.click('a[data-inintest="ic-response-link-add-text-item"]');
+        //add and save new text response
+        await this.checkOrWaitFor('iframe[data-inintest="inin-iframe-email-editor"]');
+        const frames = await this.page.frames();
+        const responseName = await this.checkOrWaitFor('input[data-inintest="ic-response-item-editor-item-name-input"]');
+        await responseName.type(" Response");
+        await frames[3].$eval('body', el => el.innerHTML+=`<div dir="ltr">new text response </div>`);
+        await this.checkOrWaitFor('button[data-inintest="response-management-editor-modal-save"]');
+        await this.page.click('button[data-inintest="response-management-editor-modal-save"]');
+        //search text response added
+        await new Promise(x => setTimeout(x, 1000));
+        const searchResponse = await this.checkOrWaitFor(`input[data-inintest="ic-response-management-tree-filter"]`) as puppeteer.ElementHandle;
+        await searchResponse.type("New Text Response");
+        await new Promise(x => setTimeout(x, 1000));
+        const linkHandlers = await this.page.$x("//span[contains(text(), 'New Text')]");
+        //click and select the text response
+        if (linkHandlers.length > 0) {
+        await linkHandlers[0].click();
+        await new Promise(x => setTimeout(x, 1000));
+        await linkHandlers[0].click({ clickCount: 2 });
+        } else {
+        throw new Error("Link not found");
+        }
+        //insert the text response
+        await this.checkOrWaitFor('button[data-inintest="response-management-insert-item-button"]');
+        await this.page.click('button[data-inintest="response-management-insert-item-button"]');
+}
+
+    async sendTextResponse(){
+        await this.openCurrentInteractionTab();
+        const replyButton =await this.checkOrWaitFor('button[class="btn btn-primary send-button"]');
+        await replyButton.click();
+    }
+
     async openUserQueueTab(userQueue: string): Promise<void> {
         if (await this.tabIsAvailable(userQueue)) {
             await this.page.waitFor(5000); // No idea why this needs to be here.
