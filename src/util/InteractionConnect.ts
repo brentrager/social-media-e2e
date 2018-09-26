@@ -492,11 +492,18 @@ export default class InteractionConnect extends Base {
         //insert the text response
         await this.checkOrWaitFor('button[data-inintest="response-management-insert-item-button"]');
         await this.page.click('button[data-inintest="response-management-insert-item-button"]');
-}
+    } 
+    async isTextResponseInserted(){
+        await this.openCurrentInteractionTab();
+        const ResponseInserted = await this.page.$eval('inin-social-conversation-composition-area',el => el.getElementsByTagName('textarea')[0].value);
+        if(ResponseInserted.length) 
+        return true;
+        else 
+        return false;
+    }
 
     async sendTextResponse(){
-        await this.openCurrentInteractionTab();
-        const replyButton =await this.checkOrWaitFor('button[class="btn btn-primary send-button"]');
+        const replyButton = await this.checkOrWaitFor('button[class="btn btn-primary send-button"]');
         await replyButton.click();
     }
 

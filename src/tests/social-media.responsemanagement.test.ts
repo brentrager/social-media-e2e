@@ -29,6 +29,7 @@ describe('Social Media - Response Management', () => {
         });
 
         let pickedUpInteraction: string;
+        let textResponseInserted: boolean;
         tcdbTest('58572', '2', `Insert a Text Response into a Social Conversation.`, { attributes: [{ attribute: global.tcdb.ATTRIBUTE_SOCIAL_CONVERSATION_INTERACTION_TYPE, value: 'Twitter' }] },
             async (addStep: Function, trace: Function) => {
                 await twitter.postRandom();
@@ -39,6 +40,8 @@ describe('Social Media - Response Management', () => {
                 addStep(`Within the Response Management view, select Response1.`);                
                 await interactionConnect.addAndInsertTextResponse();
                 addStep(`Insert the Text response into the Social Conversation interaction on TestAgent's queue.`);
+                textResponseInserted = await interactionConnect.isTextResponseInserted();
+                expect(textResponseInserted).toBeTruthy();
                 addStep(`Send the Social Conversation message.`);
                 await interactionConnect.sendTextResponse();
             }, 10 * 60 * 1000 );
