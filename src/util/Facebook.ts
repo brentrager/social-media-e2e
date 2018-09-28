@@ -45,6 +45,7 @@ export default class Facebook extends Base {
             await this.page.goto('https://facebook.com');
 
             this.log(`Logging on as: ${this.config.facebook.user}, ${this.config.facebook.password}`);
+            await this.page.$eval('input#email', el => el.value = '');
             const facebookUsernameInput = ((await this.page.waitFor('input#email')).asElement()) as puppeteer.ElementHandle;
             await facebookUsernameInput.type(this.config.facebook.user);
             const facebookPasswordInput = (await this.page.$('input#pass')) as puppeteer.ElementHandle;
@@ -55,6 +56,25 @@ export default class Facebook extends Base {
             await this.page.waitFor('input[placeholder=Search]');
         } catch (error) {
             this.logError(`Error launching: ${error}`);
+            throw error;
+        }
+    }
+
+    async logout(): Promise<void> {
+        if (!this.page) {
+            throw new Error("Page is not yet loaded.");
+        }
+
+        try {
+            await this.page.bringToFront();
+            const facebookNavigationButton = (await this.page.$('div#userNavigationLabel')) as puppeteer.ElementHandle;
+            await facebookNavigationButton.click();
+            const facebookLogOutButton = (await this.page.$('li._54ni.navSubmenu._6398._64kz.__MenuItem')) as puppeteer.ElementHandle;
+            await facebookLogOutButton.click();
+            await this.page.waitFor('input#email');
+            this.log(`Logged out of Facebook`);
+        } catch (error) {
+            this.logError(`Error logging out: ${error}`);
             throw error;
         }
     }

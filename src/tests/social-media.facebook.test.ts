@@ -6,13 +6,14 @@ import { setupTCDBJasmineReporter, tcdbTest } from '../util/TCDB';
 import * as randomWords from 'random-words';
 import * as failFast from 'jasmine-fail-fast';
 import Twitter from '../util/Twitter';
+import * as puppeteer from 'puppeteer';
 global.jasmine.getEnv().addReporter(failFast.init()); // Stop test after first failure.
 
 let interactionConnect: InteractionConnect;
 let facebook: Facebook;
 let twitter: Twitter;
 
-jest.setTimeout(5 * 60 * 1000); // Big timeout for long running Puppeteer Actions
+jest.setTimeout(10 * 60 * 1000); // Big timeout for long running Puppeteer Actions
 
 beforeAll(async () => {
     setupTCDBJasmineReporter();
@@ -81,7 +82,7 @@ describe('Social Media - Facebook', () => {
                 addStep(`Input the desired channel name and click 'Create'.`);
                 addStep(`Fill out the channel's edit page with the desired information, and click 'Save'.`);
                 const channelName = randomWords(2).join(' ');
-                expect(await interactionConnect.addFacebookChannel(channelName, config.facebook.pageName, config.facebook.socialConversationWorkgroup)).toBe(true);
+                expect(await interactionConnect.addFacebookChannel(channelName, config.facebook.pageName, config.facebook.socialConversationWorkgroup, config.facebook.socialDirectMessageWorkgroup)).toBe(true);
 
                 addStep(`Open the 'My Interactions' view on TestAgent and place a Social - Conversation interaction
                     (from the social media platform type used to create the new channel) into the utilized workgroup's queue,`);
@@ -103,7 +104,14 @@ describe('Social Media - Facebook', () => {
                 await interactionConnect.openMyInteractionsTab();
                 await facebook.postRandom();
 
-                // TODO: Make sure no interaction alerts expect(await interactionConnect.pickupAlertingInteraction(60 * 1000 * 1)).toThrow();
+                //Make sure no interaction alerts
+                let expectedAlertingError;
+                try {
+                    await interactionConnect.pickupAlertingInteraction(60 * 1000 * 1);
+                } catch (error) {
+                    expectedAlertingError = error;
+                }
+                expect(expectedAlertingError).toBeTruthy();
             }
         );
 
@@ -112,12 +120,17 @@ describe('Social Media - Facebook', () => {
             await interactionConnect.removeFacebookAccount(config.facebook.displayName);
             await interactionConnect.logout();
             await interactionConnect.page.close();
+            await facebook.logout();
             await facebook.page.close();
         });
     });
 
     describe('Social Media Facebook Interactions', async () => {
         beforeAll(async () => {
+            // Launch Facebook
+            facebook = new Facebook(config, global.browser);
+            await facebook.launch();
+
             // Launch Interaction Connect
             interactionConnect = new InteractionConnect(config, global.browser);
             await interactionConnect.launch();
@@ -125,11 +138,9 @@ describe('Social Media - Facebook', () => {
             await interactionConnect.disconnectInteractions();
             await interactionConnect.openSocialMediaConfigTab();
             await interactionConnect.addFacebookAccount(config.facebook.user, config.facebook.password);
-            await interactionConnect.addFacebookChannel(randomWords(2).join(' '), config.facebook.pageName, config.facebook.socialConversationWorkgroup);
-
-            // Launch Facebook
-            facebook = new Facebook(config, global.browser);
-            await facebook.launch();
+            await interactionConnect.selectFacebookAccount(config.facebook.displayName);
+            await interactionConnect.addFacebookChannel(randomWords(2).join(' '), config.facebook.pageName, config.facebook.socialConversationWorkgroup, config.facebook.socialDirectMessageWorkgroup);
+            await interactionConnect.openTab('My Interactions');
         });
 
         describe('Facebook Social Conversations', () => {
@@ -414,10 +425,13 @@ describe('Social Media - Facebook', () => {
         });
 
         afterAll(async () => {
+            await interactionConnect.openSocialMediaConfigTab();
+            await interactionConnect.removeFacebookAccount(config.facebook.displayName);
             await interactionConnect.openTab('My Interactions');
             await interactionConnect.disconnectInteractions();
             await interactionConnect.logout();
             await interactionConnect.page.close();
+            await facebook.logout();
             await facebook.page.close();
         });
     });

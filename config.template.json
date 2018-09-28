@@ -30,6 +30,7 @@
         "password": "FACEBOOK PASSWORD",
         "pageUrl": "URL TO FACEBOOK BUSINESS PAGE",
         "socialConversationWorkgroup": "FACEBOOK SOCIAL CONVERSATION WORKGROUP",
+        "socialDirectMessageWorkgroup": "FACEBOOK SOCIAL DIRECT MESSAGE WORKGROUP",
         "displayName": "FACEBOOK ACCOUNT DISPLAY NAME",
         "pageName": "FACEBOOK PAGE NAME"
     },
@@ -37,6 +38,7 @@
         "user": "TWITTER ACCOUNT EMAIL WITH BUSINESS PAGE",
         "password": "TWITTER PASSWORD",
         "socialConversationWorkgroup": "TWITTER SOCIAL CONVERSATION WORKGROUP",
+        "socialDirectMessageWorkgroup": "TWITTER SOCIAL DIRECT MESSAGE WORKGROUP",
         "handle": "TWITTER HANDLE",
         "user2": "ALTERNATE TWITTER ACCOUNT EMAIL",
         "password2": "ALTERNATE TWITTER PASSWORD",

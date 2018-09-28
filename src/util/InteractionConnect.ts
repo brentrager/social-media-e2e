@@ -26,6 +26,8 @@ export default class InteractionConnect extends Base {
             await this.page.goto(this.config.interactionConnect.url);
             this.log(`Choosing server: ${this.config.ic.server}`);
             const serverTextInput = (await this.page.waitFor('input[data-inintest=ic-logon-server]')).asElement() as puppeteer.ElementHandle;
+            // Clear the input field first
+            await this.page.$eval('input[data-inintest=ic-logon-server]', el => el.value = '');
             await serverTextInput.type(this.config.ic.server);
             const chooseServerButton = (await this.page.$('button[data-inintest=ic-logon-choose-server]')) as puppeteer.ElementHandle;
             await chooseServerButton.click();
@@ -74,7 +76,14 @@ export default class InteractionConnect extends Base {
             options.visible = true;
         }
 
-        return ((await this.page.waitForSelector(selector, options)).asElement()) as puppeteer.ElementHandle;
+        let element;
+        try {
+            element = await this.page.waitForSelector(selector, options);
+        } catch (error) {
+            throw error;
+        }
+
+        return (element).asElement() as puppeteer.ElementHandle;
     }
 
     private async getInteractionStates(): Promise<Map<string, string>> {
@@ -108,7 +117,12 @@ export default class InteractionConnect extends Base {
 
     private async waitForStateAndGetInteractionInState(state: string, interactionToFind?: string, timeout: number = this.DEFAULT_TIMEOUT): Promise<string> {
         if (!this.page) { throw new Error('Page is not yet loaded.'); }
-        await this.checkOrWaitFor(`div.queue-content div[data-inintest="qcol-State"] span[uib-tooltip*="${state}"]`, timeout);
+
+        try {
+            await this.checkOrWaitFor(`div.queue-content div[data-inintest="qcol-State"] span[uib-tooltip*="${state}"]`, timeout);
+        } catch (error) {
+            throw error;
+        }
 
         const interactionMap = await this.getInteractionStates() as Map<string, string>;
 
@@ -149,10 +163,11 @@ export default class InteractionConnect extends Base {
     async pickupAlertingInteraction(timeout: number = this.DEFAULT_TIMEOUT): Promise<string> {
         await this.page.bringToFront();
         await this.openMyInteractionsTab();
-        const interactionToPickUp = await this.waitForStateAndGetInteractionInState('Alerting', undefined, timeout);
-
-        if (!interactionToPickUp) {
-            throw new Error('Found no alerting interaction to pick up!');
+        let interactionToPickUp;
+        try {
+            interactionToPickUp = await this.waitForStateAndGetInteractionInState('Alerting', undefined, timeout); 
+        } catch (error) {
+            throw error;
         }
 
         return await this.pickupInteraction(interactionToPickUp);
@@ -248,7 +263,7 @@ export default class InteractionConnect extends Base {
     async replyToRootPostAndVerifyReply(reply: string): Promise<puppeteer.JSHandle> {
         await this.page.bringToFront();
         await this.openCurrentInteractionTab();
-        const replyTextArea = await this.checkOrWaitFor(`textarea[data-inintest="social-conversation-composition-text-input"]`) as puppeteer.ElementHandle;
+        const replyTextArea = await this.checkOrWaitFor(`textarea[placeholder="Write a comment..."]`) as puppeteer.ElementHandle;
 
         await replyTextArea.type(reply);
 
@@ -267,7 +282,7 @@ export default class InteractionConnect extends Base {
         const replyButton = await comment.$('span.toolbar-image') as puppeteer.ElementHandle;
         await replyButton.click();
 
-        const replyTextArea = await this.checkOrWaitFor(`div.comment-window textarea[data-inintest="social-conversation-composition-text-input"]`) as puppeteer.ElementHandle;
+        const replyTextArea = await this.checkOrWaitFor(`div.comment-window textarea[placeholder="Write a reply..."]`) as puppeteer.ElementHandle;
         await replyTextArea.type(reply);
 
         this.log(`Replying to comment: ${reply}`);
@@ -798,6 +813,7 @@ export default class InteractionConnect extends Base {
 
     async openSocialMediaAccordion(title: string): Promise<void> {
         await this.page.bringToFront();
+
         await this.page.$$eval('social-media button[data-inintest="pcor-accordion-button"] span.header-text', (spans, title1) => {
             for (const span of spans) {
                 if (span.textContent === title1) {
@@ -904,7 +920,7 @@ export default class InteractionConnect extends Base {
         await authPage.click('input[type="submit"]');
         await authPage.click('input[type="submit"]');
 
-        await this.page.waitFor(30000);
+        await this.page.waitFor(60000);
 
         return await authPageDestroyedPromise as boolean;
     }
@@ -935,7 +951,7 @@ export default class InteractionConnect extends Base {
 
         await this.page.click('facebook-channel-list form-combobox#accountId div.inin-select2-container');
         await this.page.waitFor(1000);
-        await this.checkOrWaitFor('div.select2-result-label');
+        await Promise.race([this.checkOrWaitFor('div.select2-result-label'), this.checkOrWaitFor('li.select2-no-results')]);
 
         const result = await this.page.$$eval('div.select2-result-label', (divs, displayName1) => {
             for (const div of divs) {
@@ -953,7 +969,7 @@ export default class InteractionConnect extends Base {
         return result;
     }
 
-    async addFacebookChannel(channelName: string, pageName: string, socialConversationWorkgroup: string): Promise<boolean> {
+    async addFacebookChannel(channelName: string, pageName: string, socialConversationWorkgroup: string, socialDirectMessageWorkgroup: string): Promise<boolean> {
         await this.page.bringToFront();
         await this.page.click('facebook-channel-list button[data-inintest="inin-command-button-New-base"]');
         await this.checkOrWaitFor('facebook-channel-new input[data-inintest="social-media-facebook-channel-name-required-input"]');
@@ -982,6 +998,18 @@ export default class InteractionConnect extends Base {
             }
         }
 
+        await this.page.type('facebook-channel-new div[data-inintest="social-media-facebook-channel-socialDirectMessageWorkgroup-required-container"] inin-combobox input', socialDirectMessageWorkgroup);
+        await this.page.waitFor(3000);
+
+        divs = await this.page.$$('div.select2-result-label');
+        for (const div of divs) {
+            const textContent = await (await div.asElement().getProperty('textContent')).jsonValue();
+            if (textContent === socialDirectMessageWorkgroup) {
+                await div.click();
+                break;
+            }
+        }
+
         await this.page.click('facebook-channel-new button[data-inintest="admin-new-container-btn-create"]');
         await this.page.waitFor(30000);
 
@@ -989,6 +1017,8 @@ export default class InteractionConnect extends Base {
         for (const link of links) {
             const textContent = await (await link.asElement().getProperty('textContent')).jsonValue();
             if (textContent.trim() === channelName) {
+                //Close Facebook Channel Panel
+                await this.page.click('div.side-container button[data-inintest="close-side-container"]');
                 return true;
             }
         }
@@ -1010,6 +1040,8 @@ export default class InteractionConnect extends Base {
         await this.page.waitFor(1000);
 
         await this.page.click('facebook-channel-list div[data-inintest="inin-command-button-Delete"]');
+        await this.checkOrWaitFor('pcor-confirmation-modal');
+        await this.page.click('pcor-confirmation-modal button[data-inintest="confirmation-modal-confirm"]');
 
         await this.page.waitFor(10000);
 
