@@ -39,6 +39,8 @@ export interface ConfigFacebook {
     socialDirectMessageWorkgroup: string;
     displayName: string;
     pageName: string;
+    user2: string;
+    password2: string;
 }
 
 export interface ConfigTwitter {
