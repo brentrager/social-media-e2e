@@ -923,9 +923,46 @@ export default class InteractionConnect extends Base {
         return await authPageDestroyedPromise as boolean;
     }
 
-    async selectFacebookAccount(displayName: string): Promise<void> {
+    async addTwitterAccount(email: string, password: string): Promise<boolean> {
         await this.page.bringToFront();
-        await this.page.click('facebook-channel-list form-combobox#accountId div.inin-select2-container');
+        const authPagePromise = new Promise(async resolve => {
+            const browser = await this.page.browser();
+            browser.once('targetcreated', async target => {
+                this.log(target.url());
+                resolve(await target.page());
+            });
+        });
+
+        await this.page.click('button[data-inintest="inin-command-button-Add Twitter Account-base"]');
+
+        const authPage = await authPagePromise as puppeteer.Page;
+
+        await authPage.waitForNavigation();
+        await authPage.waitForSelector('input#username_or_email');
+        await authPage.waitFor(1000);
+        await authPage.$eval('input#username_or_email', el => el.value = '');
+        await authPage.type('input#username_or_email', email);
+        await authPage.type('input#password', password);
+
+        const authPageDestroyedPromise = new Promise(async resolve => {
+            const browser = await this.page.browser();
+            browser.on('targetdestroyed', async target => {
+                if (await target.page() === authPage) {
+                    resolve(true);
+                }
+            });
+        });
+
+        await authPage.click('input#allow');
+
+        await this.page.waitFor(60000);
+
+        return await authPageDestroyedPromise as boolean;
+    }
+
+    async selectAccount(displayName: string, platform: string): Promise<void> {
+        await this.page.bringToFront();
+        await this.page.click(`${platform}-channel-list form-combobox#accountId div.inin-select2-container`);
         await this.page.waitFor(1000);
         await this.checkOrWaitFor('div.select2-result-label');
 
@@ -941,13 +978,14 @@ export default class InteractionConnect extends Base {
         await this.page.waitFor(1000);
     }
 
-    async removeFacebookAccount(displayName: string): Promise<boolean> {
+    async removeAccount(displayName: string, platform: string): Promise<boolean> {
+        const capPlatform = platform.charAt(0).toUpperCase() + platform.substr(1);
         await this.page.bringToFront();
-        await this.selectFacebookAccount(displayName);
-        await this.page.click('button[data-inintest="inin-command-button-Remove Facebook Account-base"]');
+        await this.selectAccount(displayName, platform);
+        await this.page.click(`button[data-inintest="inin-command-button-Remove ${capPlatform} Account-base"]`);
         await this.page.waitFor(15000);
 
-        await this.page.click('facebook-channel-list form-combobox#accountId div.inin-select2-container');
+        await this.page.click(`${platform}-channel-list form-combobox#accountId div.inin-select2-container`);
         await this.page.waitFor(1000);
         await Promise.race([this.checkOrWaitFor('div.select2-result-label'), this.checkOrWaitFor('li.select2-no-results')]);
 
@@ -962,16 +1000,18 @@ export default class InteractionConnect extends Base {
         }, displayName);
 
         // Close accounts drop down.
-        await this.page.click('button[data-inintest="inin-command-button-Remove Facebook Account-base"]');
+        await this.page.click(`button[data-inintest="inin-command-button-Remove ${capPlatform} Account-base"]`);
 
         return result;
     }
 
-    async removeAllFacebookAccounts(): Promise<void> {
+    async removeAllAccounts(platform: string): Promise<void> {
+        const capPlatform = platform.charAt(0).toUpperCase() + platform.substr(1);
         await this.page.bringToFront();
-        await this.openSocialMediaAccordion('Facebook');
-        if (await this.isSocialMediaAccordionExpanded('Facebook')) {
-            await this.page.click('facebook-channel-list form-combobox#accountId div.inin-select2-container');
+        await this.openSocialMediaAccordion(capPlatform);
+        await this.page.waitFor(1000);
+        if (await this.isSocialMediaAccordionExpanded(capPlatform)) {
+            await this.page.click(`${platform}-channel-list form-combobox#accountId div.inin-select2-container`);
             await this.page.waitFor(1000);
             await Promise.race([this.checkOrWaitFor('div.select2-result-label'), this.checkOrWaitFor('li.select2-no-results')]);
 
@@ -981,10 +1021,10 @@ export default class InteractionConnect extends Base {
                 const textContent = await (await div.asElement().getProperty('textContent')).jsonValue();
                 accountsToRemove.push(textContent);
             }
-            await this.page.click('facebook-channel-list form-combobox#accountId div.inin-select2-container');
+            await this.page.click(`${platform}-channel-list form-combobox#accountId div.inin-select2-container`);
 
             for (const account of accountsToRemove) {
-                await this.removeFacebookAccount(account);
+                await this.removeAccount(account, platform);
             }
         }
     }
@@ -1046,9 +1086,58 @@ export default class InteractionConnect extends Base {
         return false;
     }
 
-    async deleteFacebookChannel(channelName: string): Promise<boolean> {
+    async addTwitterChannel(channelName: string, handle: string, socialConversationWorkgroup: string, socialDirectMessageWorkgroup: string): Promise<boolean> {
         await this.page.bringToFront();
-        let links = await this.page.$$('facebook-channel-list router-link-anchor a');
+        await this.page.click('twitter-channel-list button[data-inintest="inin-command-button-New-base"]');
+        await this.checkOrWaitFor('twitter-channel-new input[data-inintest="social-media-twitter-channel-name-required-input"]');
+        await this.page.type('twitter-channel-new input[data-inintest="social-media-twitter-channel-name-required-input"]', channelName);
+        await this.page.type('twitter-channel-new input[data-inintest="social-media-twitter-channel-handles-settings-input"]', handle);
+        await this.page.type('twitter-channel-new input[data-inintest="social-media-twitter-channel-keywords-settings-input"]', handle);
+        await this.page.waitFor(3000);
+
+        await this.page.type('twitter-channel-new div[data-inintest="social-media-twitter-channel-socialConversationWorkgroup-required-container"] inin-combobox input', socialConversationWorkgroup);
+        await this.page.waitFor(3000);
+
+        let divs = await this.page.$$('div.select2-result-label');
+        for (const div of divs) {
+            const textContent = await (await div.asElement().getProperty('textContent')).jsonValue();
+            if (textContent === socialConversationWorkgroup) {
+                await div.click();
+                break;
+            }
+        }
+
+        await this.page.type('twitter-channel-new div[data-inintest="social-media-twitter-channel-socialDirectMessageWorkgroup-required-container"] inin-combobox input', socialDirectMessageWorkgroup);
+        await this.page.waitFor(3000);
+
+        divs = await this.page.$$('div.select2-result-label');
+        for (const div of divs) {
+            const textContent = await (await div.asElement().getProperty('textContent')).jsonValue();
+            if (textContent === socialDirectMessageWorkgroup) {
+                await div.click();
+                break;
+            }
+        }
+
+        await this.page.click('twitter-channel-new button[data-inintest="admin-new-container-btn-create"]');
+        await this.page.waitFor(30000);
+
+        const links = await this.page.$$('twitter-channel-list router-link-anchor a');
+        for (const link of links) {
+            const textContent = await (await link.asElement().getProperty('textContent')).jsonValue();
+            if (textContent.trim() === channelName) {
+                //Close Twitter Channel Panel
+                await this.page.click('div.side-container button[data-inintest="close-side-container"]');
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    async deleteChannel(channelName: string, platform: string): Promise<boolean> {
+        await this.page.bringToFront();
+        let links = await this.page.$$(`${platform}-channel-list router-link-anchor a`);
         for (const link of links) {
             const textContent = await (await link.asElement().getProperty('textContent')).jsonValue();
             if (textContent.trim() === channelName) {
@@ -1059,13 +1148,13 @@ export default class InteractionConnect extends Base {
 
         await this.page.waitFor(1000);
 
-        await this.page.click('facebook-channel-list div[data-inintest="inin-command-button-Delete"]');
+        await this.page.click(`${platform}-channel-list div[data-inintest="inin-command-button-Delete"]`);
         await this.checkOrWaitFor('pcor-confirmation-modal');
         await this.page.click('pcor-confirmation-modal button[data-inintest="confirmation-modal-confirm"]');
 
         await this.page.waitFor(10000);
 
-        links = await this.page.$$('facebook-channel-list router-link-anchor a');
+        links = await this.page.$$(`${platform}-channel-list router-link-anchor a`);
         for (const link of links) {
             const textContent = await (await link.asElement().getProperty('textContent')).jsonValue();
             if (textContent === channelName) {
@@ -1076,7 +1165,7 @@ export default class InteractionConnect extends Base {
         return true;
     }
 
-    async setupSocialMediaConfig(): Promise<void> {
+    async setupFacebookConfig(): Promise<void> {
         await this.launch(true);
         await this.openSocialMediaConfigTab();
         await this.openSocialMediaAccordion('Enable Social Media');
@@ -1084,10 +1173,26 @@ export default class InteractionConnect extends Base {
         await this.enableSocialMedia(this.config.socialMedia.hub, this.config.socialMedia.socialMediaProcessor, this.config.socialMedia.socialMediaProcessor2, this.config.socialMedia.socialMediaProcessorSecret);
         await this.openSocialMediaAccordion('Social Media Account');
         await this.enableSocialMediaAccount(this.config.genesysHub.email, this.config.genesysHub.password);
-        await this.removeAllFacebookAccounts();
+        await this.removeAllAccounts('facebook');
         await this.addFacebookAccount(this.config.facebook.user, this.config.facebook.password);
-        await this.selectFacebookAccount(this.config.facebook.displayName);
+        await this.selectAccount(this.config.facebook.displayName, 'faceboook');
         await this.addFacebookChannel(randomWords(2).join(' '), this.config.facebook.pageName, this.config.facebook.socialConversationWorkgroup, this.config.facebook.socialDirectMessageWorkgroup);
+        await this.logout();
+        await this.page.close();
+    }
+
+    async setupTwitterConfig(): Promise<void> {
+        await this.launch(true);
+        await this.openSocialMediaConfigTab();
+        await this.openSocialMediaAccordion('Enable Social Media');
+        await this.disableSocialMedia();
+        await this.enableSocialMedia(this.config.socialMedia.hub, this.config.socialMedia.socialMediaProcessor, this.config.socialMedia.socialMediaProcessor2, this.config.socialMedia.socialMediaProcessorSecret);
+        await this.openSocialMediaAccordion('Social Media Account');
+        await this.enableSocialMediaAccount(this.config.genesysHub.email, this.config.genesysHub.password);
+        await this.removeAllAccounts('twitter');
+        await this.addTwitterAccount(this.config.twitter.user, this.config.twitter.password);
+        await this.selectAccount(this.config.twitter.displayName, 'twitter');
+        await this.addTwitterChannel(randomWords(2).join(' '), this.config.twitter.handle, this.config.twitter.socialConversationWorkgroup, this.config.twitter.socialDirectMessageWorkgroup);
         await this.logout();
         await this.page.close();
     }

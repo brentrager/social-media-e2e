@@ -215,6 +215,7 @@ export default class Twitter extends Base {
             throw new Error("Page is not yet loaded.");
         }
         const randomPost = randomWords(10).join(" ");
+        await this.bringToFront();
         await this.page.waitFor(3000);
         await this.page.waitFor('a.global-dm-nav');
         await this.page.click('a.global-dm-nav');
@@ -230,6 +231,40 @@ export default class Twitter extends Base {
                 await this.page.click('div.DMComposer-editor');
                 await this.page.type('div.DMComposer-editor', randomPost);
                 await this.page.click('div.DMComposer-send button');
+                await this.page.click('div.DMActivity--open button.DMActivity-close');
+
+                return randomPost;
+            }
+        }
+
+        const error = new Error(`Failed to send random message to user ${user}`);
+        this.logError(error);
+        throw error;
+    }
+
+    async messageImage(user: string): Promise<void> {
+        if (!this.page) {
+            throw new Error("Page is not yet loaded.");
+        }
+        const randomPost = randomWords(10).join(" ");
+        await this.bringToFront();
+        await this.page.waitFor(3000);
+        await this.page.waitFor('a.global-dm-nav');
+        await this.page.click('a.global-dm-nav');
+        await this.page.waitFor('button.DMComposeButton');
+        await this.page.waitFor(3000);
+        const conversations = await this.page.$$('div.DMInboxItem-title span.username b');
+
+        for (const conversation of conversations) {
+            const username = await (await conversation.getProperty('innerHTML')).jsonValue();
+            if (username === user) {
+                await conversation.click();
+                await this.page.waitFor('div.DMComposer-editor');
+                const upload = await this.page.$('form.DMComposer input[type=file]');
+                await upload.uploadFile('./src/resources/testImage.png');
+                await this.page.waitFor('div.DMComposer-send button');
+                await this.page.click('div.DMComposer-send button');
+                await this.page.click('div.DMActivity--open button.DMActivity-close');
 
                 return randomPost;
             }

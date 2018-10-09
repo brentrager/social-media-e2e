@@ -61,7 +61,7 @@ describe('Social Media - Facebook Config', () => {
             expect(await interactionConnect.addFacebookAccount(config.facebook.user, config.facebook.password)).toBe(true);
 
             addStep(`With the created account selected, click the 'Unlink Account' button.`);
-            expect(await interactionConnect.removeFacebookAccount(config.facebook.displayName)).toBe(true);
+            expect(await interactionConnect.removeAccount(config.facebook.displayName, 'facebook')).toBe(true);
         }
     );
 
@@ -71,7 +71,7 @@ describe('Social Media - Facebook Config', () => {
                 and select the account you wish to add a channel to.`);
             await interactionConnect.openSocialMediaAccordion('Facebook');
             expect(await interactionConnect.addFacebookAccount(config.facebook.user, config.facebook.password)).toBe(true);
-            await interactionConnect.selectFacebookAccount(config.facebook.displayName);
+            await interactionConnect.selectAccount(config.facebook.displayName, 'facebook');
 
             addStep(`Click the '+ New' button.`);
             addStep(`Input the desired channel name and click 'Create'.`);
@@ -93,7 +93,7 @@ describe('Social Media - Facebook Config', () => {
 
             addStep(`Select the recently created channel in the Social Media Config view and click 'Delete'.`);
             await interactionConnect.openSocialMediaConfigTab();
-            expect(await interactionConnect.deleteFacebookChannel(channelName)).toBe(true);
+            expect(await interactionConnect.deleteChannel(channelName, 'facebook')).toBe(true);
 
             addStep(`Attempt to place another Social - Conversation interaction (from the social media platform type used to create the new channel) into the utilized workgroup's queue.`);
             await interactionConnect.openMyInteractionsTab();
@@ -112,7 +112,7 @@ describe('Social Media - Facebook Config', () => {
 
     afterAll(async () => {
         await interactionConnect.openSocialMediaConfigTab();
-        await interactionConnect.removeAllFacebookAccounts();
+        await interactionConnect.removeAllAccounts('facebook');
         await interactionConnect.logout();
         await interactionConnect.page.close();
         await facebook.logout();

@@ -48,9 +48,13 @@ export interface ConfigTwitter {
     password: string;
     socialConversationWorkgroup: string;
     socialDirectMessageWorkgroup: string;
+    displayName: string;
     handle: string;
+    accountName: string;
     user2: string;
     password2: string;
+    user3: string;
+    password3: string;
     pageUrl: string;
 }
 

@@ -1,14 +1,14 @@
 /* tslint:disable:quotemark max-line-length */
 import { config } from '../util/Config';
 import InteractionConnect from '../util/InteractionConnect';
-import Facebook from '../util/Facebook';
+import Twitter from '../util/Twitter';
 import { setupTCDBJasmineReporter, tcdbTest } from '../util/TCDB';
 import * as randomWords from 'random-words';
 import * as failFast from 'jasmine-fail-fast';
 global.jasmine.getEnv().addReporter(failFast.init()); // Stop test after first failure.
 
 let interactionConnect: InteractionConnect;
-let facebook: Facebook;
+let twitter: Twitter;
 
 jest.setTimeout(10 * 60 * 1000); // Big timeout for long running Puppeteer Actions
 
@@ -16,15 +16,15 @@ beforeAll(async () => {
     setupTCDBJasmineReporter();
 });
 
-describe('Social Media - Facebook Social Direct Messages', () => {
+describe('Social Media - Twitter Social Direct Messages', () => {
     beforeAll(async () => {
-        // Launch Facebook
-        facebook = new Facebook(config, global.browser);
-        await facebook.launch();
+        // Launch Twitter
+        twitter = new Twitter(config, global.browser);
+        await twitter.launch();
 
         // Launch Interaction Connect
         interactionConnect = new InteractionConnect(config, global.browser);
-        await interactionConnect.setupFacebookConfig();
+        await interactionConnect.setupTwitterConfig();
         await interactionConnect.launch(false);
         await interactionConnect.openMyInteractionsTab();
         await interactionConnect.disconnectInteractions();
@@ -32,18 +32,20 @@ describe('Social Media - Facebook Social Direct Messages', () => {
     
     let pickedUpInteraction: string;
     let originalMessage: string;
-    tcdbTest('57557', '3', 'Pickup a Social - Direct Message Interaction', { attributes: [{ attribute: global.tcdb.ATTRIBUTE_SOCIAL_DIRECT_MESSAGE_INTERACTION_TYPE, value: 'Facebook' }] },
+    tcdbTest('57557', '3', 'Pickup a Social - Direct Message Interaction', { attributes: [{ attribute: global.tcdb.ATTRIBUTE_SOCIAL_DIRECT_MESSAGE_INTERACTION_TYPE, value: 'Twitter' }] },
         async (addStep: Function, trace: Function) => {
             addStep(`Place a Social - Direct Message interaction into TestWorkgroup's queue.`);
-            originalMessage = await facebook.messageRandom();
+            await twitter.logout();
+            await twitter.signIn(config.twitter.user2, config.twitter.password2);
+            originalMessage = await twitter.messageRandom(config.twitter.displayName);
             addStep(`Pickup the alerting Social - Direct Message interaction.`);
-            trace('Waiting 5 minutes for Facebook to pass through interaction.');
+            trace('Waiting 5 minutes for Twitter to pass through interaction.');
             pickedUpInteraction = await interactionConnect.pickupAlertingInteraction(60 * 1000 * 5);
             expect(pickedUpInteraction).toBeTruthy();
         }
     );
 
-    tcdbTest('57646', '2', 'Place a Social - Direct Message Interaction On Hold', { attributes: [{ attribute: global.tcdb.ATTRIBUTE_SOCIAL_DIRECT_MESSAGE_INTERACTION_TYPE, value: 'Facebook' }] },
+    tcdbTest('57646', '2', 'Place a Social - Direct Message Interaction On Hold', { attributes: [{ attribute: global.tcdb.ATTRIBUTE_SOCIAL_DIRECT_MESSAGE_INTERACTION_TYPE, value: 'Twitter' }] },
         async (addStep: Function, trace: Function) => {
             addStep(`Using TestAgent's web client, select the Social - Direct Message interaction and click the hold button.`);
             expect(await interactionConnect.holdInteraction(pickedUpInteraction)).toBeTruthy();
@@ -52,7 +54,7 @@ describe('Social Media - Facebook Social Direct Messages', () => {
         }
     );
 
-    tcdbTest('58932', '0', 'Responding to a Social - Direct Message interaction via the post text box', { attributes: [{ attribute: global.tcdb.ATTRIBUTE_SOCIAL_DIRECT_MESSAGE_INTERACTION_TYPE, value: 'Facebook' }] },
+    tcdbTest('58932', '0', 'Responding to a Social - Direct Message interaction via the post text box', { attributes: [{ attribute: global.tcdb.ATTRIBUTE_SOCIAL_DIRECT_MESSAGE_INTERACTION_TYPE, value: 'Twitter' }] },
         async (addStep: Function, trace: Function) => {
             addStep(`Using TestAgent's web client, in the 'Current Interaction' view, type out the text of choice in the post text box, and press the send button.`);
             const message = await interactionConnect.replyDirectMessageAndVerifyReply(randomWords(10).join(' '));
@@ -60,17 +62,17 @@ describe('Social Media - Facebook Social Direct Messages', () => {
         }
     );
 
-    tcdbTest('58934', '0', 'Social - Direct Message Interaction Inline Image Handling', { attributes: [{ attribute: global.tcdb.ATTRIBUTE_SOCIAL_DIRECT_MESSAGE_INTERACTION_TYPE, value: 'Facebook' }] },
+    tcdbTest('58934', '0', 'Social - Direct Message Interaction Inline Image Handling', { attributes: [{ attribute: global.tcdb.ATTRIBUTE_SOCIAL_DIRECT_MESSAGE_INTERACTION_TYPE, value: 'Twitter' }] },
         async (addStep: Function, trace: Function) => {
             addStep(`Place a Social - Direct Message interaction containing an  image into TestWorkgroup's queue.`);
             addStep(`Pickup the alerting Social - Direct Message interaction.`);
             addStep(`Verify that the image is viewable in TestAgent's 'Current Interaction' tab.`);
-            await facebook.messageImage();
+            await twitter.messageImage(config.twitter.displayName);
             await interactionConnect.waitForDirectMessageImage();
         }
     );
 
-    tcdbTest('57549', '3', 'Filter a Workgroup Queue By Social - Direct Message Interaction Type', { attributes: [{ attribute: global.tcdb.ATTRIBUTE_SOCIAL_DIRECT_MESSAGE_INTERACTION_TYPE, value: 'Facebook' }] },
+    tcdbTest('57549', '3', 'Filter a Workgroup Queue By Social - Direct Message Interaction Type', { attributes: [{ attribute: global.tcdb.ATTRIBUTE_SOCIAL_DIRECT_MESSAGE_INTERACTION_TYPE, value: 'Twitter' }] },
         async (addStep: Function, trace: Function) => {
             addStep(`Add TestWorkgroup's workgroup queue view to TestUser's web client.`);
             await interactionConnect.openWorkgroupQueueTab(config.ic.workgroup);
@@ -83,7 +85,7 @@ describe('Social Media - Facebook Social Direct Messages', () => {
         }
     );
 
-    tcdbTest('57553', '4', 'Filter a User Queue By Social - Direct Message Interaction Type', { attributes: [{ attribute: global.tcdb.ATTRIBUTE_SOCIAL_DIRECT_MESSAGE_INTERACTION_TYPE, value: 'Facebook' }] },
+    tcdbTest('57553', '4', 'Filter a User Queue By Social - Direct Message Interaction Type', { attributes: [{ attribute: global.tcdb.ATTRIBUTE_SOCIAL_DIRECT_MESSAGE_INTERACTION_TYPE, value: 'Twitter' }] },
         async (addStep: Function, trace: Function) => {
             addStep(`Add TestUser's user queue view to TestUser's web client.`);
             await interactionConnect.openUserQueueTab(config.ic.user);
@@ -97,16 +99,16 @@ describe('Social Media - Facebook Social Direct Messages', () => {
     );
 
     let pickedUpInteraction2: string;
-    tcdbTest('57561', '2', 'Selecting a Social - Direct Message interaction in the \'My Interactions\'  view will display the contents of the interaction in the \'Current Interaction\' view.', { attributes: [{ attribute: global.tcdb.ATTRIBUTE_SOCIAL_DIRECT_MESSAGE_INTERACTION_TYPE, value: 'Facebook' }] },
+    tcdbTest('57561', '2', 'Selecting a Social - Direct Message interaction in the \'My Interactions\'  view will display the contents of the interaction in the \'Current Interaction\' view.', { attributes: [{ attribute: global.tcdb.ATTRIBUTE_SOCIAL_DIRECT_MESSAGE_INTERACTION_TYPE, value: 'Twitter' }] },
         async (addStep: Function, trace: Function) => {
             addStep(`Place 2 different Social - Direct Message interactions into TestWorkgroup's queue.`);
-            await facebook.logout();
-            await facebook.signIn(config.facebook.user2, config.facebook.password2);
-            const facebookMessage2 = await facebook.messageRandomExternal();
+            await twitter.logout();
+            await twitter.signIn(config.twitter.user3, config.twitter.password3);
+            const twitterMessage2 = await twitter.messageRandom(config.twitter.displayName);
             pickedUpInteraction2 = await interactionConnect.pickupAlertingInteraction(60 * 1000 * 5);
 
             addStep(`Select one of the alerting Social - Direct Message interactions.`);
-            await interactionConnect.waitForDirectMessage(facebookMessage2);
+            await interactionConnect.waitForDirectMessage(twitterMessage2);
 
             addStep(`Select the second alerting Social - Direct Message interaction.`);
             await interactionConnect.clickOnInteraction(pickedUpInteraction);
@@ -114,7 +116,7 @@ describe('Social Media - Facebook Social Direct Messages', () => {
         }
     );
 
-    tcdbTest('57648', '3', 'Transfer a Social - Direct Message Interaction', { attributes: [{ attribute: global.tcdb.ATTRIBUTE_SOCIAL_DIRECT_MESSAGE_INTERACTION_TYPE, value: 'Facebook' }] },
+    tcdbTest('57648', '3', 'Transfer a Social - Direct Message Interaction', { attributes: [{ attribute: global.tcdb.ATTRIBUTE_SOCIAL_DIRECT_MESSAGE_INTERACTION_TYPE, value: 'Twitter' }] },
         async (addStep: Function, trace: Function) => {
             addStep(`Using TestAgent1's web client, select the Social - Direct Message interaction and click the transfer button.`);
             addStep(`Within the transfer dialog, enter TestAgent2's extension.`);
@@ -130,14 +132,14 @@ describe('Social Media - Facebook Social Direct Messages', () => {
         }
     );
 
-    tcdbTest('57559', '4', 'Disconnect a Social - Direct Message Interaction', { attributes: [{ attribute: global.tcdb.ATTRIBUTE_SOCIAL_DIRECT_MESSAGE_INTERACTION_TYPE, value: 'Facebook' }] },
+    tcdbTest('57559', '4', 'Disconnect a Social - Direct Message Interaction', { attributes: [{ attribute: global.tcdb.ATTRIBUTE_SOCIAL_DIRECT_MESSAGE_INTERACTION_TYPE, value: 'Twitter' }] },
         async (addStep: Function, trace: Function) => {
             addStep(`Using TestAgent's web client, select the Social - Direct Message interaction and click the disconnect button.`);
             expect(await interactionConnect.disconnectInteraction(pickedUpInteraction)).toBeTruthy();
         }
     );
 
-    tcdbTest('57546', '2', 'Configure Ring Sound for Social - Direct Messages', { attributes: [{ attribute: global.tcdb.ATTRIBUTE_SOCIAL_DIRECT_MESSAGE_INTERACTION_TYPE, value: 'Facebook' }] },
+    tcdbTest('57546', '2', 'Configure Ring Sound for Social - Direct Messages', { attributes: [{ attribute: global.tcdb.ATTRIBUTE_SOCIAL_DIRECT_MESSAGE_INTERACTION_TYPE, value: 'Twitter' }] },
         async (addStep: Function, trace: Function) => {
             addStep(`Open the application settings dialog and navigate to the ring sounds settings page.`);
             await interactionConnect.openRingSoundsSettings();
@@ -163,10 +165,10 @@ describe('Social Media - Facebook Social Direct Messages', () => {
         await interactionConnect.page.close();
         await interactionConnect.launch(true);
         await interactionConnect.openSocialMediaConfigTab();
-        await interactionConnect.removeAllAccounts('facebook');
+        await interactionConnect.removeAllAccounts('twitter');
         await interactionConnect.logout();
         await interactionConnect.page.close();
-        await facebook.logout();
-        await facebook.page.close();
+        await twitter.logout();
+        await twitter.page.close();
     });
 });

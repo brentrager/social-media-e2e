@@ -41,9 +41,12 @@
         "password": "TWITTER PASSWORD",
         "socialConversationWorkgroup": "TWITTER SOCIAL CONVERSATION WORKGROUP",
         "socialDirectMessageWorkgroup": "TWITTER SOCIAL DIRECT MESSAGE WORKGROUP",
+        "displayName": "Twitter ACCOUNT DISPLAY NAME",
         "handle": "TWITTER HANDLE",
         "user2": "ALTERNATE TWITTER ACCOUNT EMAIL",
         "password2": "ALTERNATE TWITTER PASSWORD",
+        "user3": "SECOND ALTERNATE TWITTER ACCOUNT EMAIL",
+        "password3": "SECOND ALTERNATE TWITTER PASSWORD",
         "pageUrl": "URL TO TWITTER BUSINESS PAGE"
     },
     "hubless": {

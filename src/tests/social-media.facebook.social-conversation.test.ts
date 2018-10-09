@@ -25,7 +25,7 @@ describe('Social Media - Facebook Social Conversations', async () => {
 
         // Launch Interaction Connect
         interactionConnect = new InteractionConnect(config, global.browser);
-        await interactionConnect.setupSocialMediaConfig();
+        await interactionConnect.setupFacebookConfig();
         await interactionConnect.launch(false);
         await interactionConnect.openMyInteractionsTab();
         await interactionConnect.disconnectInteractions();
@@ -179,7 +179,7 @@ describe('Social Media - Facebook Social Conversations', async () => {
         await interactionConnect.page.close();
         await interactionConnect.launch(true);
         await interactionConnect.openSocialMediaConfigTab();
-        await interactionConnect.removeAllFacebookAccounts();
+        await interactionConnect.removeAllAccounts('facebook');
         await interactionConnect.logout();
         await interactionConnect.page.close();
         await facebook.logout();
