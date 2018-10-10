@@ -270,6 +270,13 @@ export default class InteractionConnect extends Base {
 
         await replyTextArea.type(reply);
 
+        return await this.sendReplyToRootPostAndVerifyReply(reply);
+    }
+
+    async sendReplyToRootPostAndVerifyReply(reply: string): Promise<puppeteer.JSHandle> {
+        await this.page.bringToFront();
+        await this.openCurrentInteractionTab();
+
         this.log(`Replying to root post: ${reply}`);
         await this.page.click('inin-social-conversation-composition-area div.composition-submit-toolbar button');
 
@@ -459,67 +466,82 @@ export default class InteractionConnect extends Base {
         }
     }
 
+    async openResponseManagementTab(): Promise<void> {
+        const currentInteractionView = 'Response Management';
+        const currentInteractionViewId = 'responseManagement';
+        if (await this.tabIsAvailable(currentInteractionView)) {
+            await this.openTab(currentInteractionView);
+        } else {
+            await this.addNewTab(currentInteractionViewId, currentInteractionView);
+            await this.openTab(currentInteractionView);
+        }
+    }
+
     async addAndInsertTextResponse(): Promise<void> {
-        const responseManagementView = 'Response Management';
-        // Open the Response Management View
-        // Click add view icon
-        await this.page.click('button[data-inintest="docking-add-view"] i.glyphicons-plus');
-        await this.checkOrWaitFor('button[data-inintest="add-view-popover-center-show-all"]');
-        await this.page.click('button[data-inintest="add-view-popover-center-show-all"]');
-        await this.checkOrWaitFor('label[data-inintest="add-view-dialog-item-responseManagement"]');
-        // Click Response Management
-        await this.page.click('label[data-inintest="add-view-dialog-item-responseManagement"]');
-        // Click Add View
-        await this.page.click('button[data-inintest="add-link"]');
-        await this.waitForTabToOpen(responseManagementView);
-        await this.openTab(responseManagementView);
-        //view response management editor
+        await this.openResponseManagementTab();
+
+        //View response management editor
         await this.checkOrWaitFor('button[data-inintest="ic-response-management-configure-button"]');
+        await this.page.waitFor(1000);
         await this.page.click('button[data-inintest="ic-response-management-configure-button"]');
-        //click add response button
+        //Click add response button
         await this.checkOrWaitFor('button[data-inintest="ic-response-button-add-item"]');
         await this.page.click('button[data-inintest="ic-response-button-add-item"]');
-        //select text response type
+        //Select text response type
         await this.checkOrWaitFor('a[data-inintest="ic-response-link-add-text-item"]');
         await this.page.click('a[data-inintest="ic-response-link-add-text-item"]');
-        //add and save new text response
+
+        //Add and save new text response
         await this.checkOrWaitFor('iframe[data-inintest="inin-iframe-email-editor"]');
         const frames = await this.page.frames();
         const responseName = await this.checkOrWaitFor('input[data-inintest="ic-response-item-editor-item-name-input"]');
         await responseName.type(" Response");
-        await frames[3].$eval('body', el => el.innerHTML+=`<div dir="ltr">new text response </div>`);
+        await frames[3].$eval('body', el => el.innerHTML+=`<div dir="ltr"> test response text</div>`);
         await this.checkOrWaitFor('button[data-inintest="response-management-editor-modal-save"]');
         await this.page.click('button[data-inintest="response-management-editor-modal-save"]');
-        //search text response added
-        await new Promise(x => setTimeout(x, 1000));
-        const searchResponse = await this.checkOrWaitFor(`input[data-inintest="ic-response-management-tree-filter"]`) as puppeteer.ElementHandle;
+
+        //Search text response added
+        await this.page.waitFor(1000);
+        const searchResponse = await this.checkOrWaitFor(`inin-search-input[data-inintest="ic-response-management-tree-filter"] input`) as puppeteer.ElementHandle;
         await searchResponse.type("New Text Response");
-        await new Promise(x => setTimeout(x, 1000));
+        await this.page.waitFor(1000);
         const linkHandlers = await this.page.$x("//span[contains(text(), 'New Text')]");
-        //click and select the text response
+
+        //Click and select the text response
         if (linkHandlers.length > 0) {
-        await linkHandlers[0].click();
-        await new Promise(x => setTimeout(x, 1000));
-        await linkHandlers[0].click({ clickCount: 2 });
+            await linkHandlers[0].click();
+            await this.page.waitFor(1000);
         } else {
-        throw new Error("Link not found");
+            throw new Error("Link not found");
         }
-        //insert the text response
+
+        //Insert the text response with button
         await this.checkOrWaitFor('button[data-inintest="response-management-insert-item-button"]');
         await this.page.click('button[data-inintest="response-management-insert-item-button"]');
     } 
-    async isTextResponseInserted(){
+
+    async isTextResponseInserted(textResponse: string): Promise<boolean> {
         await this.openCurrentInteractionTab();
-        const ResponseInserted = await this.page.$eval('inin-social-conversation-composition-area',el => el.getElementsByTagName('textarea')[0].value);
-        if(ResponseInserted.length) 
-        return true;
-        else 
-        return false;
+        const ResponseInserted = await this.page.$eval('inin-social-conversation-composition-area', el => el.getElementsByTagName('textarea')[0].value);
+        return ResponseInserted === textResponse;
     }
 
-    async sendTextResponse(){
-        const replyButton = await this.checkOrWaitFor('button[class="btn btn-primary send-button"]');
-        await replyButton.click();
+    async removeAllResponses(): Promise<void> {
+        await this.checkOrWaitFor('button[data-inintest="ic-response-management-configure-button"]');
+        await this.page.waitFor(1000);
+        await this.page.click('button[data-inintest="ic-response-management-configure-button"]');
+    
+        await this.checkOrWaitFor('div.ic-response-management-editor div.inin-tree-item-list.current-level ul');
+        const responses = await this.page.$$('div.ic-response-management-editor div.inin-tree-item-list.current-level ul li');
+        for (const response of responses) {
+            response.click();
+            await this.page.click('button[data-inintest="ic-response-button-delete"]');
+        }
+        if (responses.length > 0) {
+            await this.page.click('button[data-inintest="response-management-editor-modal-save"]');
+        } else {
+            await this.page.click('button[data-inintest="modalClose"]');
+        }
     }
 
     async openUserQueueTab(userQueue: string): Promise<void> {
@@ -1236,6 +1258,7 @@ export default class InteractionConnect extends Base {
         await this.enableSocialMedia(this.config.socialMedia.hub, this.config.socialMedia.socialMediaProcessor, this.config.socialMedia.socialMediaProcessor2, this.config.socialMedia.socialMediaProcessorSecret);
         await this.openSocialMediaAccordion('Social Media Account');
         await this.enableSocialMediaAccount(this.config.genesysHub.email, this.config.genesysHub.password);
+        await this.page.waitFor(10000);
         await this.removeAllAccounts('facebook');
         await this.addFacebookAccount(this.config.facebook.user, this.config.facebook.password);
         await this.selectAccount(this.config.facebook.displayName, 'faceboook');
@@ -1252,6 +1275,7 @@ export default class InteractionConnect extends Base {
         await this.enableSocialMedia(this.config.socialMedia.hub, this.config.socialMedia.socialMediaProcessor, this.config.socialMedia.socialMediaProcessor2, this.config.socialMedia.socialMediaProcessorSecret);
         await this.openSocialMediaAccordion('Social Media Account');
         await this.enableSocialMediaAccount(this.config.genesysHub.email, this.config.genesysHub.password);
+        await this.page.waitFor(10000);
         await this.removeAllAccounts('twitter');
         await this.addTwitterAccount(this.config.twitter.user, this.config.twitter.password);
         await this.selectAccount(this.config.twitter.displayName, 'twitter');

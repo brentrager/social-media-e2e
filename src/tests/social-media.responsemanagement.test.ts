@@ -16,18 +16,20 @@ beforeAll(async () => {
 });
 
 describe('Social Media - Response Management', () => {
-    describe('Twitter Social Conversations', () => {
-        beforeAll(async () => {
-            // Launch Interaction Connect
-            interactionConnect = new InteractionConnect(config, global.browser);
-            await interactionConnect.launch();
-            await interactionConnect.openTab('My Interactions');
-            await interactionConnect.disconnectInteractions();       
-            // Launch Twitter
-            twitter = new Twitter(config, global.browser);
-            await twitter.launch();     
-        });
+    beforeAll(async () => {
+        // Launch Twitter
+        twitter = new Twitter(config, global.browser);
+        await twitter.launch();
 
+        // Launch Interaction Connect
+        interactionConnect = new InteractionConnect(config, global.browser);
+        await interactionConnect.setupTwitterConfig();
+        await interactionConnect.launch(false);
+        await interactionConnect.openMyInteractionsTab();
+        await interactionConnect.disconnectInteractions();   
+    });
+
+    describe('Twitter Social Conversations', () => {
         let pickedUpInteraction: string;
         let textResponseInserted: boolean;
         tcdbTest('58572', '2', `Insert a Text Response into a Social Conversation.`, { attributes: [{ attribute: global.tcdb.ATTRIBUTE_SOCIAL_CONVERSATION_INTERACTION_TYPE, value: 'Twitter' }] },
@@ -36,23 +38,29 @@ describe('Social Media - Response Management', () => {
                 trace('Waiting 5 minutes for Twitter to pass through interaction.');
                 pickedUpInteraction = await interactionConnect.pickupAlertingInteraction(60 * 1000 * 5);
                 expect(pickedUpInteraction).toBeTruthy();
-                await interactionConnect.openCurrentInteractionTab(); 
-                addStep(`Within the Response Management view, select Response1.`);                
+                addStep('Within the Response Management view, select Response1.');                
                 await interactionConnect.addAndInsertTextResponse();
                 addStep(`Insert the Text response into the Social Conversation interaction on TestAgent's queue.`);
-                textResponseInserted = await interactionConnect.isTextResponseInserted();
+                textResponseInserted = await interactionConnect.isTextResponseInserted("test response text");
                 expect(textResponseInserted).toBeTruthy();
-                addStep(`Send the Social Conversation message.`);
-                await interactionConnect.sendTextResponse();
+                addStep('Send the Social Conversation message.');
+                await interactionConnect.sendReplyToRootPostAndVerifyReply("test response text");
             }, 10 * 60 * 1000 );
     });
 
     afterAll(async () => {
-        await interactionConnect.openTab('My Interactions');
+        await interactionConnect.openResponseManagementTab();
+        await interactionConnect.removeAllResponses();
+        await interactionConnect.openMyInteractionsTab();
         await interactionConnect.disconnectInteractions();
         await interactionConnect.logout();
-        await twitter.logout();
         await interactionConnect.page.close();
+        await interactionConnect.launch(true);
+        await interactionConnect.openSocialMediaConfigTab();
+        await interactionConnect.removeAllAccounts('twitter');
+        await interactionConnect.logout();
+        await interactionConnect.page.close();
+        await twitter.logout();
         await twitter.page.close();
     });
 });
