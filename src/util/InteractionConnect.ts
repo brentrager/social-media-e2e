@@ -1,4 +1,5 @@
 /* tslint:disable:quotemark max-line-length max-file-line-count */
+import * as randomWords from 'random-words';
 import * as puppeteer from 'puppeteer';
 import * as moment from 'moment';
 import { Config } from './Config';
@@ -26,6 +27,8 @@ export default class InteractionConnect extends Base {
             await this.page.goto(this.config.interactionConnect.url);
             this.log(`Choosing server: ${this.config.ic.server}`);
             const serverTextInput = (await this.page.waitFor('input[data-inintest=ic-logon-server]')).asElement() as puppeteer.ElementHandle;
+            // Clear the input field first
+            await this.page.$eval('input[data-inintest=ic-logon-server]', el => el.value = '');
             await serverTextInput.type(this.config.ic.server);
             const chooseServerButton = (await this.page.$('button[data-inintest=ic-logon-choose-server]')) as puppeteer.ElementHandle;
             await chooseServerButton.click();
@@ -74,7 +77,14 @@ export default class InteractionConnect extends Base {
             options.visible = true;
         }
 
-        return ((await this.page.waitForSelector(selector, options)).asElement()) as puppeteer.ElementHandle;
+        let element;
+        try {
+            element = await this.page.waitForSelector(selector, options);
+        } catch (error) {
+            throw error;
+        }
+
+        return (element).asElement() as puppeteer.ElementHandle;
     }
 
     private async getInteractionStates(): Promise<Map<string, string>> {
@@ -108,7 +118,14 @@ export default class InteractionConnect extends Base {
 
     private async waitForStateAndGetInteractionInState(state: string, interactionToFind?: string, timeout: number = this.DEFAULT_TIMEOUT): Promise<string> {
         if (!this.page) { throw new Error('Page is not yet loaded.'); }
-        await this.checkOrWaitFor(`div.queue-content div[data-inintest="qcol-State"] span[uib-tooltip*="${state}"]`, timeout);
+
+        try {
+            await this.checkOrWaitFor(`div.queue-content div[data-inintest="qcol-State"] span[uib-tooltip*="${state}"]`, timeout);
+        } catch (error) {
+            throw error;
+        }
+
+        await this.page.waitFor(1000);
 
         const interactionMap = await this.getInteractionStates() as Map<string, string>;
 
@@ -149,10 +166,11 @@ export default class InteractionConnect extends Base {
     async pickupAlertingInteraction(timeout: number = this.DEFAULT_TIMEOUT): Promise<string> {
         await this.page.bringToFront();
         await this.openMyInteractionsTab();
-        const interactionToPickUp = await this.waitForStateAndGetInteractionInState('Alerting', undefined, timeout);
-
-        if (!interactionToPickUp) {
-            throw new Error('Found no alerting interaction to pick up!');
+        let interactionToPickUp;
+        try {
+            interactionToPickUp = await this.waitForStateAndGetInteractionInState('Alerting', undefined, timeout); 
+        } catch (error) {
+            throw error;
         }
 
         return await this.pickupInteraction(interactionToPickUp);
@@ -208,10 +226,10 @@ export default class InteractionConnect extends Base {
         await this.page.bringToFront();
         await this.openMyInteractionsTab();
         await this.performActionOnInteraction(interaction, 'transfer');
-
         await this.page.waitFor('input[data-inintest="advanced-transfer-modal-lookup-textbox"]');
+        await this.page.waitFor(3000);
         await this.page.type('input[data-inintest="advanced-transfer-modal-lookup-textbox"]', transferTarget);
-        await this.page.waitFor(1000);
+        await this.page.waitFor(3000);
         await this.page.keyboard.press('ArrowDown');
         await this.page.keyboard.press('Enter');
         await this.page.waitFor(1000);
@@ -225,7 +243,7 @@ export default class InteractionConnect extends Base {
             await this.page.waitFor(500);
             const post = await this.page.evaluateHandle(reply1 => {
                 return new Promise(resolve => {
-                    const posts = document.querySelectorAll('div[data-inintest="post-text"]');
+                    const posts = document.querySelectorAll('div.post-post');
                     for (const post1 of posts) {
                         if (post1.innerHTML === reply1) {
                             // Return the parent post.
@@ -248,12 +266,19 @@ export default class InteractionConnect extends Base {
     async replyToRootPostAndVerifyReply(reply: string): Promise<puppeteer.JSHandle> {
         await this.page.bringToFront();
         await this.openCurrentInteractionTab();
-        const replyTextArea = await this.checkOrWaitFor(`textarea[data-inintest="social-conversation-composition-text-input"]`) as puppeteer.ElementHandle;
+        const replyTextArea = await this.checkOrWaitFor(`textarea[placeholder="Write a comment..."]`) as puppeteer.ElementHandle;
 
         await replyTextArea.type(reply);
 
+        return await this.sendReplyToRootPostAndVerifyReply(reply);
+    }
+
+    async sendReplyToRootPostAndVerifyReply(reply: string): Promise<puppeteer.JSHandle> {
+        await this.page.bringToFront();
+        await this.openCurrentInteractionTab();
+
         this.log(`Replying to root post: ${reply}`);
-        await this.page.click('button[data-inintest="social-conversation-composition-send-link"]');
+        await this.page.click('inin-social-conversation-composition-area div.composition-submit-toolbar button');
 
         const post = await this.waitForNewReply(reply);
         this.log(`Verified reply to root post: ${reply}`);
@@ -267,11 +292,11 @@ export default class InteractionConnect extends Base {
         const replyButton = await comment.$('span.toolbar-image') as puppeteer.ElementHandle;
         await replyButton.click();
 
-        const replyTextArea = await this.checkOrWaitFor(`div.comment-window textarea[data-inintest="social-conversation-composition-text-input"]`) as puppeteer.ElementHandle;
+        const replyTextArea = await this.checkOrWaitFor(`div.comment-window textarea[placeholder="Write a reply..."]`) as puppeteer.ElementHandle;
         await replyTextArea.type(reply);
 
         this.log(`Replying to comment: ${reply}`);
-        await this.page.click('div.comment-window button[data-inintest="social-conversation-composition-send-link"]');
+        await this.page.click('div.comment-window div.composition-submit-toolbar button');
 
         const post = await this.waitForNewReply(reply);
         this.log(`Verified reply to comment: ${reply}`);
@@ -396,13 +421,13 @@ export default class InteractionConnect extends Base {
 
     async addNewTab(viewId: string, tabName: string): Promise<void> {
         await this.page.bringToFront();
-        await this.page.click('.inin-tabset-end-button[data-inintest="docking-add-view"] i.glyphicons-plus');
+        await this.page.click('button.inin-tabset-end-button[data-inintest="docking-add-view"]');
         await this.checkOrWaitFor('button[data-inintest="add-view-popover-center-show-all"]');
         await this.page.click('button[data-inintest="add-view-popover-center-show-all"]');
         await this.checkOrWaitFor(`label[data-inintest="add-view-dialog-item-${viewId}"]`);
         await this.page.click(`label[data-inintest="add-view-dialog-item-${viewId}"]`);
         this.log(`Checking add view for: ${viewId}`);
-        await this.page.click(`.add-view-button[data-inintest="add-link"]`);
+        await this.page.click(`button.add-view-button[data-inintest="add-link"]`);
         this.log(`Adding View`);
         await this.waitForTabToOpen(tabName);
     }
@@ -420,91 +445,103 @@ export default class InteractionConnect extends Base {
     }
 
     async openMyInteractionsTab(): Promise<void> {
-        const myInteractionsView = 'My Interactions';
-        await this.openTab(myInteractionsView);
+        const currentInteractionView = 'My Interactions';
+        const currentInteractionViewId = 'myInteractionsQueue';
+        if (await this.tabIsAvailable(currentInteractionView)) {
+            await this.openTab(currentInteractionView);
+        } else {
+            await this.addNewTab(currentInteractionViewId, currentInteractionView);
+            await this.openTab(currentInteractionView);
+        }
     }
 
     async openCurrentInteractionTab(): Promise<void> {
         const currentInteractionView = 'Current Interaction';
+        const currentInteractionViewId = 'interactionEditor';
         if (await this.tabIsAvailable(currentInteractionView)) {
             await this.openTab(currentInteractionView);
         } else {
-            // Open the Current Interaction View
-            // Click add view icon
-            await this.page.click('button[data-inintest="docking-add-view"] i.glyphicons-plus');
-            await this.checkOrWaitFor('button[data-inintest="add-view-popover-center-show-all"]');
-            await this.page.click('button[data-inintest="add-view-popover-center-show-all"]');
-            await this.checkOrWaitFor('label[data-inintest="add-view-dialog-item-interactionEditor"]');
-            // Click Current Interaction
-            await this.page.click('label[data-inintest="add-view-dialog-item-interactionEditor"]');
-            // Click Add View
-            await this.page.click('button[data-inintest="add-link"]');
-            await this.waitForTabToOpen(currentInteractionView);
+            await this.addNewTab(currentInteractionViewId, currentInteractionView);
+            await this.openTab(currentInteractionView);
+        }
+    }
+
+    async openResponseManagementTab(): Promise<void> {
+        const currentInteractionView = 'Response Management';
+        const currentInteractionViewId = 'responseManagement';
+        if (await this.tabIsAvailable(currentInteractionView)) {
+            await this.openTab(currentInteractionView);
+        } else {
+            await this.addNewTab(currentInteractionViewId, currentInteractionView);
             await this.openTab(currentInteractionView);
         }
     }
 
     async addAndInsertTextResponse(): Promise<void> {
-        const responseManagementView = 'Response Management';
-        // Open the Response Management View
-        // Click add view icon
-        await this.page.click('button[data-inintest="docking-add-view"] i.glyphicons-plus');
-        await this.checkOrWaitFor('button[data-inintest="add-view-popover-center-show-all"]');
-        await this.page.click('button[data-inintest="add-view-popover-center-show-all"]');
-        await this.checkOrWaitFor('label[data-inintest="add-view-dialog-item-responseManagement"]');
-        // Click Response Management
-        await this.page.click('label[data-inintest="add-view-dialog-item-responseManagement"]');
-        // Click Add View
-        await this.page.click('button[data-inintest="add-link"]');
-        await this.waitForTabToOpen(responseManagementView);
-        await this.openTab(responseManagementView);
-        //view response management editor
+        await this.openResponseManagementTab();
+
+        //View response management editor
         await this.checkOrWaitFor('button[data-inintest="ic-response-management-configure-button"]');
+        await this.page.waitFor(1000);
         await this.page.click('button[data-inintest="ic-response-management-configure-button"]');
-        //click add response button
+        //Click add response button
         await this.checkOrWaitFor('button[data-inintest="ic-response-button-add-item"]');
         await this.page.click('button[data-inintest="ic-response-button-add-item"]');
-        //select text response type
+        //Select text response type
         await this.checkOrWaitFor('a[data-inintest="ic-response-link-add-text-item"]');
         await this.page.click('a[data-inintest="ic-response-link-add-text-item"]');
-        //add and save new text response
+
+        //Add and save new text response
         await this.checkOrWaitFor('iframe[data-inintest="inin-iframe-email-editor"]');
         const frames = await this.page.frames();
         const responseName = await this.checkOrWaitFor('input[data-inintest="ic-response-item-editor-item-name-input"]');
         await responseName.type(" Response");
-        await frames[3].$eval('body', el => el.innerHTML+=`<div dir="ltr">new text response </div>`);
+        await frames[3].$eval('body', el => el.innerHTML+=`<div dir="ltr"> test response text</div>`);
         await this.checkOrWaitFor('button[data-inintest="response-management-editor-modal-save"]');
         await this.page.click('button[data-inintest="response-management-editor-modal-save"]');
-        //search text response added
-        await new Promise(x => setTimeout(x, 1000));
-        const searchResponse = await this.checkOrWaitFor(`input[data-inintest="ic-response-management-tree-filter"]`) as puppeteer.ElementHandle;
+
+        //Search text response added
+        await this.page.waitFor(1000);
+        const searchResponse = await this.checkOrWaitFor(`inin-search-input[data-inintest="ic-response-management-tree-filter"] input`) as puppeteer.ElementHandle;
         await searchResponse.type("New Text Response");
-        await new Promise(x => setTimeout(x, 1000));
+        await this.page.waitFor(1000);
         const linkHandlers = await this.page.$x("//span[contains(text(), 'New Text')]");
-        //click and select the text response
+
+        //Click and select the text response
         if (linkHandlers.length > 0) {
-        await linkHandlers[0].click();
-        await new Promise(x => setTimeout(x, 1000));
-        await linkHandlers[0].click({ clickCount: 2 });
+            await linkHandlers[0].click();
+            await this.page.waitFor(1000);
         } else {
-        throw new Error("Link not found");
+            throw new Error("Link not found");
         }
-        //insert the text response
+
+        //Insert the text response with button
         await this.checkOrWaitFor('button[data-inintest="response-management-insert-item-button"]');
         await this.page.click('button[data-inintest="response-management-insert-item-button"]');
     } 
-    async isTextResponseInserted(){
+
+    async isTextResponseInserted(textResponse: string): Promise<boolean> {
         await this.openCurrentInteractionTab();
-        const ResponseInserted = await this.page.$eval('inin-social-conversation-composition-area',el => el.getElementsByTagName('textarea')[0].value);
-        if(ResponseInserted.length) 
-        return true;
-        else 
-        return false;
+        const ResponseInserted = await this.page.$eval('inin-social-conversation-composition-area', el => el.getElementsByTagName('textarea')[0].value);
+        return ResponseInserted === textResponse;
     }
 
-    async sendTextResponse(){
-        const replyButton = await this.checkOrWaitFor('button[class="btn btn-primary send-button"]');
-        await replyButton.click();
+    async removeAllResponses(): Promise<void> {
+        await this.checkOrWaitFor('button[data-inintest="ic-response-management-configure-button"]');
+        await this.page.waitFor(1000);
+        await this.page.click('button[data-inintest="ic-response-management-configure-button"]');
+    
+        await this.checkOrWaitFor('div.ic-response-management-editor div.inin-tree-item-list.current-level ul');
+        const responses = await this.page.$$('div.ic-response-management-editor div.inin-tree-item-list.current-level ul li');
+        for (const response of responses) {
+            response.click();
+            await this.page.click('button[data-inintest="ic-response-button-delete"]');
+        }
+        if (responses.length > 0) {
+            await this.page.click('button[data-inintest="response-management-editor-modal-save"]');
+        } else {
+            await this.page.click('button[data-inintest="modalClose"]');
+        }
     }
 
     async openUserQueueTab(userQueue: string): Promise<void> {
@@ -514,15 +551,15 @@ export default class InteractionConnect extends Base {
         } else {
             // Open the User Queue View
             // Click add view icon
-            await this.page.click('button[data-inintest="docking-add-view"] i.glyphicons-plus');
+            await this.page.click('button[data-inintest="docking-add-view"]');
             await this.checkOrWaitFor('button[data-inintest="add-view-popover-center-show-all"]');
             await this.page.click('button[data-inintest="add-view-popover-center-show-all"]');
             // Click User Queue
             await this.checkOrWaitFor('label[data-inintest="add-view-dialog-item-userQueue"]');
             await this.page.click('label[data-inintest="add-view-dialog-item-userQueue"]');
             // Search for userQueue
-            await this.checkOrWaitFor('input[data-inintest="add-view-dialog-userQueue-search"]');
-            await this.page.type('input[data-inintest="add-view-dialog-userQueue-search"]', userQueue);
+            await this.checkOrWaitFor('inin-search-input[data-inintest="add-view-dialog-userQueue-search"] input');
+            await this.page.type('inin-search-input[data-inintest="add-view-dialog-userQueue-search"] input', userQueue);
 
             // Can't get this to work without a delay.
             await this.page.waitFor(1000);
@@ -543,15 +580,15 @@ export default class InteractionConnect extends Base {
         } else {
             // Open the Workgroup Queue View
             // Click add view icon
-            await this.page.click('button[data-inintest="docking-add-view"] i.glyphicons-plus');
+            await this.page.click('button[data-inintest="docking-add-view"]');
             await this.checkOrWaitFor('button[data-inintest="add-view-popover-center-show-all"]');
             await this.page.click('button[data-inintest="add-view-popover-center-show-all"]');
             // Click Workgroup Queue
             await this.checkOrWaitFor('label[data-inintest="add-view-dialog-item-workgroupQueue"]');
             await this.page.click('label[data-inintest="add-view-dialog-item-workgroupQueue"]');
             // Search for workgroupQueue
-            await this.checkOrWaitFor('input[data-inintest="add-view-dialog-workgroupQueue-search"]');
-            await this.page.type('input[data-inintest="add-view-dialog-workgroupQueue-search"]', workgroupQueue);
+            await this.checkOrWaitFor('inin-search-input[data-inintest="add-view-dialog-workgroupQueue-search"] input');
+            await this.page.type('inin-search-input[data-inintest="add-view-dialog-workgroupQueue-search"] input', workgroupQueue);
             // Can't get this to work without a delay.
             await this.page.waitFor(1000);
             // Click workgroupQueue
@@ -566,7 +603,7 @@ export default class InteractionConnect extends Base {
 
     async clearUserQueueFilter(): Promise<void> {
         await this.page.bringToFront();
-        const iconFilter = await this.checkOrWaitFor(`div[data-inintest*="ic-interactions-queue-view-User-view"] i.icon-filter`, this.DEFAULT_TIMEOUT, true) as puppeteer.ElementHandle;
+        const iconFilter = await this.checkOrWaitFor(`div.inin-docking-pane:not(.inin-docking-view-hidden) i.ark-icon.ai-filter`, this.DEFAULT_TIMEOUT, true) as puppeteer.ElementHandle;
         await iconFilter.click();
         await this.page.waitFor(1000);
         const resetButton = await this.checkOrWaitFor('div.popover-content button[data-inintest="filter-clear-filter"]', this.DEFAULT_TIMEOUT, true) as puppeteer.ElementHandle;
@@ -577,7 +614,7 @@ export default class InteractionConnect extends Base {
 
     async clearWorkgroupQueueFilter(): Promise<void> {
         await this.page.bringToFront();
-        const iconFilter = await this.checkOrWaitFor(`div[data-inintest*="ic-interactions-queue-view-Workgroup-view"] i.icon-filter`, this.DEFAULT_TIMEOUT, true) as puppeteer.ElementHandle;
+        const iconFilter = await this.checkOrWaitFor(`div.inin-docking-pane:not(.inin-docking-view-hidden) i.ark-icon.ai-filter`, this.DEFAULT_TIMEOUT, true) as puppeteer.ElementHandle;
         await iconFilter.click();
         await this.page.waitFor(1000);
         const resetButton = await this.checkOrWaitFor('div.popover-content button[data-inintest="filter-clear-filter"]', this.DEFAULT_TIMEOUT, true) as puppeteer.ElementHandle;
@@ -588,7 +625,7 @@ export default class InteractionConnect extends Base {
 
     async filterUserQueueOnSocialConversations(): Promise<void> {
         await this.page.bringToFront();
-        const iconFilter = await this.checkOrWaitFor(`div[data-inintest*="ic-interactions-queue-view-User-view"] i.icon-filter`, this.DEFAULT_TIMEOUT, true) as puppeteer.ElementHandle;
+        const iconFilter = await this.checkOrWaitFor(`div.inin-docking-pane:not(.inin-docking-view-hidden) i.ark-icon.ai-filter`, this.DEFAULT_TIMEOUT, true) as puppeteer.ElementHandle;
         await iconFilter.click();
         const interactionTypeSelect = await this.checkOrWaitFor(`div.popover-content div[data-inintest="filter-interaction-types-multiselect inin-checkbox-multiselect-All`, this.DEFAULT_TIMEOUT, true) as puppeteer.ElementHandle;
         await interactionTypeSelect.click();
@@ -600,7 +637,7 @@ export default class InteractionConnect extends Base {
 
     async filterUserQueueOnDirectMessages(): Promise<void> {
         await this.page.bringToFront();
-        const iconFilter = await this.checkOrWaitFor(`div[data-inintest*="ic-interactions-queue-view-User-view"] i.icon-filter`, this.DEFAULT_TIMEOUT, true) as puppeteer.ElementHandle;
+        const iconFilter = await this.checkOrWaitFor(`div.inin-docking-pane:not(.inin-docking-view-hidden) i.ark-icon.ai-filter`, this.DEFAULT_TIMEOUT, true) as puppeteer.ElementHandle;
         await iconFilter.click();
         const interactionTypeSelect = await this.checkOrWaitFor(`div.popover-content div[data-inintest="filter-interaction-types-multiselect inin-checkbox-multiselect-All`, this.DEFAULT_TIMEOUT, true) as puppeteer.ElementHandle;
         await interactionTypeSelect.click();
@@ -612,7 +649,7 @@ export default class InteractionConnect extends Base {
 
     async filterWorkgroupQueueOnSocialConversations(): Promise<void> {
         await this.page.bringToFront();
-        const iconFilter = await this.checkOrWaitFor(`div[data-inintest*="ic-interactions-queue-view-Workgroup-view"] i.icon-filter`, this.DEFAULT_TIMEOUT, true) as puppeteer.ElementHandle;
+        const iconFilter = await this.checkOrWaitFor(`div.inin-docking-pane:not(.inin-docking-view-hidden) i.ark-icon.ai-filter`, this.DEFAULT_TIMEOUT, true) as puppeteer.ElementHandle;
         await iconFilter.click();
         const interactionTypeSelect = await this.checkOrWaitFor(`div.popover-content div[data-inintest="filter-interaction-types-multiselect inin-checkbox-multiselect-All"]`, this.DEFAULT_TIMEOUT, true) as puppeteer.ElementHandle;
         await interactionTypeSelect.click();
@@ -624,7 +661,7 @@ export default class InteractionConnect extends Base {
 
     async filterWorkgroupQueueOnDirectMessages(): Promise<void> {
         await this.page.bringToFront();
-        const iconFilter = await this.checkOrWaitFor(`div[data-inintest*="ic-interactions-queue-view-Workgroup-view"] i.icon-filter`, this.DEFAULT_TIMEOUT, true) as puppeteer.ElementHandle;
+        const iconFilter = await this.checkOrWaitFor(`div.inin-docking-pane:not(.inin-docking-view-hidden) i.ark-icon.ai-filter`, this.DEFAULT_TIMEOUT, true) as puppeteer.ElementHandle;
         await iconFilter.click();
         const interactionTypeSelect = await this.checkOrWaitFor(`div.popover-content div[data-inintest="filter-interaction-types-multiselect inin-checkbox-multiselect-All"]`, this.DEFAULT_TIMEOUT, true) as puppeteer.ElementHandle;
         await interactionTypeSelect.click();
@@ -640,7 +677,7 @@ export default class InteractionConnect extends Base {
         } else {
             // Open the Social Media Config View
             // Click add view icon
-            await this.page.click('button[data-inintest="docking-add-view"] i.glyphicons-plus');
+            await this.page.click('button[data-inintest="docking-add-view"]');
             await this.checkOrWaitFor('button[data-inintest="add-view-popover-center-show-all"]');
             await this.page.click('button[data-inintest="add-view-popover-center-show-all"]');
             // Click Social Media Config View
@@ -656,7 +693,7 @@ export default class InteractionConnect extends Base {
     private async openSettings(): Promise<puppeteer.ElementHandle> {
         const userMenuButton = await this.checkOrWaitFor(`button[data-inintest="user-menu-dropdown-toggle"]`, this.DEFAULT_TIMEOUT, true) as puppeteer.ElementHandle;
         await userMenuButton.click();
-        const settingsButton = await this.checkOrWaitFor(`button[data-inintest="navbar-configuration-link"]`) as puppeteer.ElementHandle;
+        const settingsButton = await this.checkOrWaitFor(`a[data-inintest="navbar-configuration-link"]`) as puppeteer.ElementHandle;
         await settingsButton.click();
 
         return await this.checkOrWaitFor(`div[data-inintest="configuration-modal"]`) as puppeteer.ElementHandle;
@@ -861,6 +898,7 @@ export default class InteractionConnect extends Base {
 
     async openSocialMediaAccordion(title: string): Promise<void> {
         await this.page.bringToFront();
+
         await this.page.$$eval('social-media button[data-inintest="pcor-accordion-button"] span.header-text', (spans, title1) => {
             for (const span of spans) {
                 if (span.textContent === title1) {
@@ -963,18 +1001,53 @@ export default class InteractionConnect extends Base {
             });
         });
 
-        // Need to click twice because of the overlay from the location request.
-        await authPage.click('input[type="submit"]');
         await authPage.click('input[type="submit"]');
 
-        await this.page.waitFor(30000);
+        await this.page.waitFor(60000);
 
         return await authPageDestroyedPromise as boolean;
     }
 
-    async selectFacebookAccount(displayName: string): Promise<void> {
+    async addTwitterAccount(email: string, password: string): Promise<boolean> {
         await this.page.bringToFront();
-        await this.page.click('facebook-channel-list form-combobox#accountId div.inin-select2-container');
+        const authPagePromise = new Promise(async resolve => {
+            const browser = await this.page.browser();
+            browser.once('targetcreated', async target => {
+                this.log(target.url());
+                resolve(await target.page());
+            });
+        });
+
+        await this.page.click('button[data-inintest="inin-command-button-Add Twitter Account-base"]');
+
+        const authPage = await authPagePromise as puppeteer.Page;
+
+        await authPage.waitForNavigation();
+        await authPage.waitForSelector('input#username_or_email');
+        await authPage.waitFor(1000);
+        await authPage.$eval('input#username_or_email', el => el.value = '');
+        await authPage.type('input#username_or_email', email);
+        await authPage.type('input#password', password);
+
+        const authPageDestroyedPromise = new Promise(async resolve => {
+            const browser = await this.page.browser();
+            browser.on('targetdestroyed', async target => {
+                if (await target.page() === authPage) {
+                    resolve(true);
+                }
+            });
+        });
+
+        await authPage.click('input#allow');
+
+        await this.page.waitFor(60000);
+
+        return await authPageDestroyedPromise as boolean;
+    }
+
+    async selectAccount(displayName: string, platform: string): Promise<void> {
+        await this.page.bringToFront();
+        await this.page.click(`${platform}-channel-list form-combobox#accountId div.inin-select2-container`);
         await this.page.waitFor(1000);
         await this.checkOrWaitFor('div.select2-result-label');
 
@@ -990,15 +1063,16 @@ export default class InteractionConnect extends Base {
         await this.page.waitFor(1000);
     }
 
-    async removeFacebookAccount(displayName: string): Promise<boolean> {
+    async removeAccount(displayName: string, platform: string): Promise<boolean> {
+        const capPlatform = platform.charAt(0).toUpperCase() + platform.substr(1);
         await this.page.bringToFront();
-        await this.selectFacebookAccount(displayName);
-        await this.page.click('button[data-inintest="inin-command-button-Remove Facebook Account-base"]');
+        await this.selectAccount(displayName, platform);
+        await this.page.click(`button[data-inintest="inin-command-button-Remove ${capPlatform} Account-base"]`);
         await this.page.waitFor(15000);
 
-        await this.page.click('facebook-channel-list form-combobox#accountId div.inin-select2-container');
+        await this.page.click(`${platform}-channel-list form-combobox#accountId div.inin-select2-container`);
         await this.page.waitFor(1000);
-        await this.checkOrWaitFor('div.select2-result-label');
+        await Promise.race([this.checkOrWaitFor('div.select2-result-label'), this.checkOrWaitFor('li.select2-no-results')]);
 
         const result = await this.page.$$eval('div.select2-result-label', (divs, displayName1) => {
             for (const div of divs) {
@@ -1011,12 +1085,36 @@ export default class InteractionConnect extends Base {
         }, displayName);
 
         // Close accounts drop down.
-        await this.page.click('button[data-inintest="inin-command-button-Remove Facebook Account-base"]');
+        await this.page.click(`button[data-inintest="inin-command-button-Remove ${capPlatform} Account-base"]`);
 
         return result;
     }
 
-    async addFacebookChannel(channelName: string, pageName: string, socialConversationWorkgroup: string): Promise<boolean> {
+    async removeAllAccounts(platform: string): Promise<void> {
+        const capPlatform = platform.charAt(0).toUpperCase() + platform.substr(1);
+        await this.page.bringToFront();
+        await this.openSocialMediaAccordion(capPlatform);
+        await this.page.waitFor(1000);
+        if (await this.isSocialMediaAccordionExpanded(capPlatform)) {
+            await this.page.click(`${platform}-channel-list form-combobox#accountId div.inin-select2-container`);
+            await this.page.waitFor(1000);
+            await Promise.race([this.checkOrWaitFor('div.select2-result-label'), this.checkOrWaitFor('li.select2-no-results')]);
+
+            let accountsToRemove = [];
+            const divs = await this.page.$$('div.select2-result-label');
+            for (const div of divs) {
+                const textContent = await (await div.asElement().getProperty('textContent')).jsonValue();
+                accountsToRemove.push(textContent);
+            }
+            await this.page.click(`${platform}-channel-list form-combobox#accountId div.inin-select2-container`);
+
+            for (const account of accountsToRemove) {
+                await this.removeAccount(account, platform);
+            }
+        }
+    }
+
+    async addFacebookChannel(channelName: string, pageName: string, socialConversationWorkgroup: string, socialDirectMessageWorkgroup: string): Promise<boolean> {
         await this.page.bringToFront();
         await this.page.click('facebook-channel-list button[data-inintest="inin-command-button-New-base"]');
         await this.checkOrWaitFor('facebook-channel-new input[data-inintest="social-media-facebook-channel-name-required-input"]');
@@ -1045,6 +1143,18 @@ export default class InteractionConnect extends Base {
             }
         }
 
+        await this.page.type('facebook-channel-new div[data-inintest="social-media-facebook-channel-socialDirectMessageWorkgroup-required-container"] inin-combobox input', socialDirectMessageWorkgroup);
+        await this.page.waitFor(3000);
+
+        divs = await this.page.$$('div.select2-result-label');
+        for (const div of divs) {
+            const textContent = await (await div.asElement().getProperty('textContent')).jsonValue();
+            if (textContent === socialDirectMessageWorkgroup) {
+                await div.click();
+                break;
+            }
+        }
+
         await this.page.click('facebook-channel-new button[data-inintest="admin-new-container-btn-create"]');
         await this.page.waitFor(30000);
 
@@ -1052,6 +1162,8 @@ export default class InteractionConnect extends Base {
         for (const link of links) {
             const textContent = await (await link.asElement().getProperty('textContent')).jsonValue();
             if (textContent.trim() === channelName) {
+                //Close Facebook Channel Panel
+                await this.page.click('div.side-container button[data-inintest="close-side-container"]');
                 return true;
             }
         }
@@ -1059,9 +1171,58 @@ export default class InteractionConnect extends Base {
         return false;
     }
 
-    async deleteFacebookChannel(channelName: string): Promise<boolean> {
+    async addTwitterChannel(channelName: string, handle: string, socialConversationWorkgroup: string, socialDirectMessageWorkgroup: string): Promise<boolean> {
         await this.page.bringToFront();
-        let links = await this.page.$$('facebook-channel-list router-link-anchor a');
+        await this.page.click('twitter-channel-list button[data-inintest="inin-command-button-New-base"]');
+        await this.checkOrWaitFor('twitter-channel-new input[data-inintest="social-media-twitter-channel-name-required-input"]');
+        await this.page.type('twitter-channel-new input[data-inintest="social-media-twitter-channel-name-required-input"]', channelName);
+        await this.page.type('twitter-channel-new input[data-inintest="social-media-twitter-channel-handles-settings-input"]', handle);
+        await this.page.type('twitter-channel-new input[data-inintest="social-media-twitter-channel-keywords-settings-input"]', handle);
+        await this.page.waitFor(3000);
+
+        await this.page.type('twitter-channel-new div[data-inintest="social-media-twitter-channel-socialConversationWorkgroup-required-container"] inin-combobox input', socialConversationWorkgroup);
+        await this.page.waitFor(3000);
+
+        let divs = await this.page.$$('div.select2-result-label');
+        for (const div of divs) {
+            const textContent = await (await div.asElement().getProperty('textContent')).jsonValue();
+            if (textContent === socialConversationWorkgroup) {
+                await div.click();
+                break;
+            }
+        }
+
+        await this.page.type('twitter-channel-new div[data-inintest="social-media-twitter-channel-socialDirectMessageWorkgroup-required-container"] inin-combobox input', socialDirectMessageWorkgroup);
+        await this.page.waitFor(3000);
+
+        divs = await this.page.$$('div.select2-result-label');
+        for (const div of divs) {
+            const textContent = await (await div.asElement().getProperty('textContent')).jsonValue();
+            if (textContent === socialDirectMessageWorkgroup) {
+                await div.click();
+                break;
+            }
+        }
+
+        await this.page.click('twitter-channel-new button[data-inintest="admin-new-container-btn-create"]');
+        await this.page.waitFor(30000);
+
+        const links = await this.page.$$('twitter-channel-list router-link-anchor a');
+        for (const link of links) {
+            const textContent = await (await link.asElement().getProperty('textContent')).jsonValue();
+            if (textContent.trim() === channelName) {
+                //Close Twitter Channel Panel
+                await this.page.click('div.side-container button[data-inintest="close-side-container"]');
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    async deleteChannel(channelName: string, platform: string): Promise<boolean> {
+        await this.page.bringToFront();
+        let links = await this.page.$$(`${platform}-channel-list router-link-anchor a`);
         for (const link of links) {
             const textContent = await (await link.asElement().getProperty('textContent')).jsonValue();
             if (textContent.trim() === channelName) {
@@ -1072,11 +1233,13 @@ export default class InteractionConnect extends Base {
 
         await this.page.waitFor(1000);
 
-        await this.page.click('facebook-channel-list div[data-inintest="inin-command-button-Delete"]');
+        await this.page.click(`${platform}-channel-list div[data-inintest="inin-command-button-Delete"]`);
+        await this.checkOrWaitFor('pcor-confirmation-modal');
+        await this.page.click('pcor-confirmation-modal button[data-inintest="confirmation-modal-confirm"]');
 
         await this.page.waitFor(10000);
 
-        links = await this.page.$$('facebook-channel-list router-link-anchor a');
+        links = await this.page.$$(`${platform}-channel-list router-link-anchor a`);
         for (const link of links) {
             const textContent = await (await link.asElement().getProperty('textContent')).jsonValue();
             if (textContent === channelName) {
@@ -1085,5 +1248,39 @@ export default class InteractionConnect extends Base {
         }
 
         return true;
+    }
+
+    async setupFacebookConfig(): Promise<void> {
+        await this.launch(true);
+        await this.openSocialMediaConfigTab();
+        await this.openSocialMediaAccordion('Enable Social Media');
+        await this.disableSocialMedia();
+        await this.enableSocialMedia(this.config.socialMedia.hub, this.config.socialMedia.socialMediaProcessor, this.config.socialMedia.socialMediaProcessor2, this.config.socialMedia.socialMediaProcessorSecret);
+        await this.openSocialMediaAccordion('Social Media Account');
+        await this.enableSocialMediaAccount(this.config.genesysHub.email, this.config.genesysHub.password);
+        await this.page.waitFor(10000);
+        await this.removeAllAccounts('facebook');
+        await this.addFacebookAccount(this.config.facebook.user, this.config.facebook.password);
+        await this.selectAccount(this.config.facebook.displayName, 'faceboook');
+        await this.addFacebookChannel(randomWords(2).join(' '), this.config.facebook.pageName, this.config.facebook.socialConversationWorkgroup, this.config.facebook.socialDirectMessageWorkgroup);
+        await this.logout();
+        await this.page.close();
+    }
+
+    async setupTwitterConfig(): Promise<void> {
+        await this.launch(true);
+        await this.openSocialMediaConfigTab();
+        await this.openSocialMediaAccordion('Enable Social Media');
+        await this.disableSocialMedia();
+        await this.enableSocialMedia(this.config.socialMedia.hub, this.config.socialMedia.socialMediaProcessor, this.config.socialMedia.socialMediaProcessor2, this.config.socialMedia.socialMediaProcessorSecret);
+        await this.openSocialMediaAccordion('Social Media Account');
+        await this.enableSocialMediaAccount(this.config.genesysHub.email, this.config.genesysHub.password);
+        await this.page.waitFor(10000);
+        await this.removeAllAccounts('twitter');
+        await this.addTwitterAccount(this.config.twitter.user, this.config.twitter.password);
+        await this.selectAccount(this.config.twitter.displayName, 'twitter');
+        await this.addTwitterChannel(randomWords(2).join(' '), this.config.twitter.handle, this.config.twitter.socialConversationWorkgroup, this.config.twitter.socialDirectMessageWorkgroup);
+        await this.logout();
+        await this.page.close();
     }
 }

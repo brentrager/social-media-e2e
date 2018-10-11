@@ -30,16 +30,23 @@
         "password": "FACEBOOK PASSWORD",
         "pageUrl": "URL TO FACEBOOK BUSINESS PAGE",
         "socialConversationWorkgroup": "FACEBOOK SOCIAL CONVERSATION WORKGROUP",
+        "socialDirectMessageWorkgroup": "FACEBOOK SOCIAL DIRECT MESSAGE WORKGROUP",
         "displayName": "FACEBOOK ACCOUNT DISPLAY NAME",
-        "pageName": "FACEBOOK PAGE NAME"
+        "pageName": "FACEBOOK PAGE NAME",
+        "user2": "ALTERNATE FACEBOOK ACCOUNT EMAIL",
+        "password2": "ALTERNATE FACEBOOK PASSWORD"
     },
     "twitter": {
         "user": "TWITTER ACCOUNT EMAIL WITH BUSINESS PAGE",
         "password": "TWITTER PASSWORD",
         "socialConversationWorkgroup": "TWITTER SOCIAL CONVERSATION WORKGROUP",
+        "socialDirectMessageWorkgroup": "TWITTER SOCIAL DIRECT MESSAGE WORKGROUP",
+        "displayName": "TWITTER ACCOUNT DISPLAY NAME",
         "handle": "TWITTER HANDLE",
         "user2": "ALTERNATE TWITTER ACCOUNT EMAIL",
         "password2": "ALTERNATE TWITTER PASSWORD",
+        "user3": "SECOND ALTERNATE TWITTER ACCOUNT EMAIL",
+        "password3": "SECOND ALTERNATE TWITTER PASSWORD",
         "pageUrl": "URL TO TWITTER BUSINESS PAGE"
     },
     "hubless": {

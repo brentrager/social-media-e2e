@@ -42,19 +42,44 @@ export default class Facebook extends Base {
             // Load the page
             this.page = await this.browser.newPage();
             await this.page.setViewport({ width: 1000, height: 800 });
-            await this.page.goto('https://facebook.com');
 
-            this.log(`Logging on as: ${this.config.facebook.user}, ${this.config.facebook.password}`);
-            const facebookUsernameInput = ((await this.page.waitFor('input#email')).asElement()) as puppeteer.ElementHandle;
-            await facebookUsernameInput.type(this.config.facebook.user);
-            const facebookPasswordInput = (await this.page.$('input#pass')) as puppeteer.ElementHandle;
-            await facebookPasswordInput.type(this.config.facebook.password);
-            const facebookSubmitButton = (await this.page.$('input[value="Log In"]')) as puppeteer.ElementHandle;
-            await facebookSubmitButton.click();
-            // The first easy thing I found to wait for after login was the search bar.
-            await this.page.waitFor('input[placeholder=Search]');
+            await this.signIn(this.config.facebook.user, this.config.facebook.password);
         } catch (error) {
             this.logError(`Error launching: ${error}`);
+            throw error;
+        }
+    }
+
+    async signIn(user: string, password: string): Promise<void> {
+        await this.page.bringToFront();
+        await this.page.goto('https://facebook.com');
+        this.log(`Logging on as: ${user}, ${password}`);
+        await this.page.$eval('input#email', el => el.value = '');
+        const facebookUsernameInput = ((await this.page.waitFor('input#email')).asElement()) as puppeteer.ElementHandle;
+        await facebookUsernameInput.type(user);
+        const facebookPasswordInput = (await this.page.$('input#pass')) as puppeteer.ElementHandle;
+        await facebookPasswordInput.type(password);
+        const facebookSubmitButton = (await this.page.$('input[value="Log In"]')) as puppeteer.ElementHandle;
+        await facebookSubmitButton.click();
+        // The first easy thing I found to wait for after login was the search bar.
+        await this.page.waitFor('input[placeholder=Search]');
+    }
+
+    async logout(): Promise<void> {
+        if (!this.page) {
+            throw new Error("Page is not yet loaded.");
+        }
+
+        try {
+            await this.page.bringToFront();
+            const facebookNavigationButton = (await this.page.$('div#userNavigationLabel')) as puppeteer.ElementHandle;
+            await facebookNavigationButton.click();
+            const facebookLogOutButton = ((await this.page.waitFor('li._54ni.navSubmenu._6398._64kz.__MenuItem')).asElement()) as puppeteer.ElementHandle;
+            await facebookLogOutButton.click();
+            await this.page.waitFor('input#email');
+            this.log(`Logged out of Facebook`);
+        } catch (error) {
+            this.logError(`Error logging out: ${error}`);
             throw error;
         }
     }
@@ -93,8 +118,6 @@ export default class Facebook extends Base {
             randomPost = randomWords(10).join(' ');
             await facebookPageWriteSomethingInput.type(randomPost);
             await this.page.click('button[data-testid="react-composer-post-button"]');
-            await this.page.click('button[data-testid="react-composer-post-button"]');
-            await this.page.click('button[data-testid="react-composer-post-button"]');
             // The first easy thing I found to wait for after login was the search bar.
             await this.page.waitFor('input[placeholder=Search]');
             this.log(`Posted random post: ${randomPost}`);
@@ -115,13 +138,13 @@ export default class Facebook extends Base {
         await this.bringToFront();
         this.log(`Load page: ${this.config.facebook.pageUrl}`);
         await this.page.goto(this.config.facebook.pageUrl);
+        await this.page.waitFor(5000);
 
         randomPost = randomWords(10).join(' ');
 
-        await this.page.waitFor('button[color=accentblue] span');
-        // The click gets through the overlay for the notification
-        await this.page.click('button[color=accentblue] span');
-        await this.page.hover('button[color=accentblue] span');
+        await this.page.waitFor('button[color=accentblue]');
+        await this.page.click('div#pagelet_page_cover');
+        await this.page.hover('button[color=accentblue]');
 
         for (const option of await this.page.$$('div[role=button]')) {
             const optionText = (await (await option.getProperty('innerHTML')).jsonValue()) as string;
@@ -145,14 +168,38 @@ export default class Facebook extends Base {
         return randomPost;
     }
 
+    async messageRandomExternal(): Promise<string> {
+        if (!this.page) {
+            throw new Error('Page is not yet loaded.');
+        }
+        let randomPost;
+
+        await this.bringToFront();
+        this.log(`Load page: ${this.config.facebook.pageUrl}`);
+        await this.page.goto(this.config.facebook.pageUrl);
+
+        randomPost = randomWords(10).join(' ');
+
+        await this.page.waitFor('button[color=fbblue] span');
+        await this.page.click('button[color=fbblue] span');
+
+        await this.page.waitFor(5000);
+        const divs = await this.page.$$('div[contenteditable=true]');
+        if (divs && divs.length > 1) {
+            const div = divs[1];
+            await div.click();
+            await div.type(randomPost);
+            await div.press('Enter');
+        }
+
+        return randomPost;
+    }
+
     async messageImage(): Promise<void> {
         await this.bringToFront();
         const upload = await this.page.$('form[title="Add photos"] input[type=file]');
         await upload.uploadFile('./src/resources/testImage.png');
-        const divs = await this.page.$$('div[contenteditable=true]');
-        if (divs && divs.length > 1) {
-            const div = divs[1];
-            await div.press('Enter');
-        }
+        await this.page.waitFor('a[label=send]');
+        await this.page.click('a[label=send]');
     }
 }

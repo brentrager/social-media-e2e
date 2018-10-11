@@ -36,17 +36,25 @@ export interface ConfigFacebook {
     password: string;
     pageUrl: string;
     socialConversationWorkgroup: string;
+    socialDirectMessageWorkgroup: string;
     displayName: string;
     pageName: string;
+    user2: string;
+    password2: string;
 }
 
 export interface ConfigTwitter {
     user: string;
     password: string;
     socialConversationWorkgroup: string;
+    socialDirectMessageWorkgroup: string;
+    displayName: string;
     handle: string;
+    accountName: string;
     user2: string;
     password2: string;
+    user3: string;
+    password3: string;
     pageUrl: string;
 }
 

@@ -3,7 +3,8 @@ module.exports = {
     launch: {
         headless: process.env.HEADLESS === 'true',
         args: [
-            '--start-maximized'
+            '--start-maximized',
+            '--disable-notifications'
         ]
     }
 };
